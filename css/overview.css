@@ -1,0 +1,351 @@
+.team-header {
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    margin: 15px 0 10px;
+    padding-bottom: 5px;
+}
+
+.team-title {
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.winner-label {
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    text-transform: uppercase;
+}
+
+.overview-table {
+    background-color: var(--bg-table);
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+.overview-table th {
+    background-color: var(--bg-container);
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: help;
+    font-size: 11px;
+    font-weight: normal;
+    padding: 8px 10px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.overview-table td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 6px 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.overview-table tr:hover td {
+    background-color: var(--bg-row-hover, #202a32);
+}
+
+.player-column {
+    width: 250px;
+}
+
+.level-column {
+    width: 40px;
+}
+
+.small-column {
+    width: 30px;
+}
+
+.creeps-column {
+    width: 60px;
+}
+
+.gold-column,
+.rate-column {
+    width: 90px;
+}
+
+.stat-column {
+    width: 70px;
+}
+
+.effects-column {
+    width: 100px;
+}
+
+.player-cell {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+}
+
+.hero-img {
+    background-color: #111;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    height: 27px;
+    width: 48px;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.player-name {
+    color: var(--blue-link);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.player-name:hover {
+    text-decoration: underline;
+}
+
+.player-rank {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.items-cell {
+    align-items: center;
+    display: flex;
+    gap: 3px;
+}
+
+.item-slot {
+    background-color: #101418;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    cursor: pointer;
+    display: inline-block;
+    height: 24px;
+    width: 32px;
+}
+
+.item-slot img,
+.item-neutral img {
+    height: 100%;
+    width: 100%;
+}
+
+.item-slot img {
+    object-fit: fill;
+}
+
+.item-neutral {
+    background-color: #101418;
+    border: 1px solid #e67e22;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-block;
+    height: 24px;
+    margin-left: 6px;
+    overflow: hidden;
+    width: 24px;
+}
+
+.buff-icon {
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    color: var(--text-muted);
+    display: inline-block;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 18px;
+    padding: 2px 4px;
+}
+
+.buff-icon.active {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.draft-container-single {
+    background-color: #151d23;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 4px 4px;
+    border-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 25px;
+    margin-top: -25px;
+    padding: 12px 15px;
+}
+
+.draft-team-header {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.draft-row {
+    align-items: center;
+    display: flex;
+    gap: 15px;
+}
+
+.draft-row-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    width: 50px;
+}
+
+.pb-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pb-item {
+    background-color: #111;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    cursor: help;
+    overflow: hidden;
+    position: relative;
+    height: 27px;
+    width: 48px;
+}
+
+.pb-item img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.pb-badge {
+    background: rgba(0, 0, 0, 0.75);
+    bottom: 0;
+    color: #fff;
+    font-size: 8px;
+    left: 0;
+    padding: 1px 0;
+    position: absolute;
+    text-align: center;
+    width: 100%;
+}
+
+.pb-item.ban img {
+    filter: grayscale(1) brightness(0.4);
+}
+
+.pb-item.ban::after {
+    background: linear-gradient(45deg, transparent 45%, #e74c3c 15%, #e74c3c 15%, transparent 55%);
+    content: "";
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+.missing-asset,
+.missing-item {
+    align-items: center;
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: bold;
+    height: 100%;
+    justify-content: center;
+    min-height: 21px;
+    padding: 0 4px;
+    width: 100%;
+}
+
+.missing-asset {
+    height: 27px;
+    width: 90px;
+}
+
+.totals-row td {
+    background-color: rgba(0, 0, 0, 0.16);
+    font-weight: bold;
+}
+
+.profile-panel {
+    background-color: var(--bg-table);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    padding: 14px;
+}
+
+.profile-panel .team-header {
+    margin-top: 0;
+}
+
+.profile-main {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+}
+
+.profile-main h1 {
+    font-size: 22px;
+    margin: 0 0 6px;
+}
+
+.profile-avatar {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    height: 84px;
+    object-fit: cover;
+    width: 84px;
+}
+
+.profile-meta {
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.profile-panel > .profile-link {
+    display: inline-block;
+    margin-top: 14px;
+}
+
+.profile-mini-avatar {
+    border-radius: 3px;
+    height: 32px;
+    object-fit: cover;
+    width: 32px;
+}
+
+.profile-matches-table,
+.search-table {
+    margin-bottom: 0;
+}
+
+.search-match-result,
+.empty-state {
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.16);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding: 12px;
+}

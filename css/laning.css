@@ -1,0 +1,257 @@
+/* ===== Лейнинг: общий контейнер ===== */
+.laning-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ===== Заголовок секции ===== */
+.laning-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.laning-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--text-main);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.laning-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.laning-summary {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.laning-score {
+    padding: 5px 12px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
+
+.laning-score.radiant strong { color: var(--radiant-green); }
+.laning-score.dire    strong { color: var(--dire-red); }
+
+/* ===== Карточка линии ===== */
+.laning-lane-card {
+    background-color: var(--bg-table);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+}
+
+.laning-lane-card.radiant { border-left: 3px solid var(--radiant-green); }
+.laning-lane-card.dire    { border-left: 3px solid var(--dire-red); }
+.laning-lane-card.draw    { border-left: 3px solid #8a94a6; }
+
+.lane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--bg-header);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lane-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-main);
+    letter-spacing: 0.3px;
+}
+
+.lane-winner {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.lane-winner.radiant {
+    color: var(--radiant-green);
+    background: rgba(46, 204, 113, 0.12);
+}
+.lane-winner.dire {
+    color: var(--dire-red);
+    background: rgba(231, 76, 60, 0.12);
+}
+.lane-winner.draw {
+    color: var(--text-muted);
+    background: rgba(138, 148, 166, 0.12);
+}
+
+/* ===== Матч-ап: две стороны + VS ===== */
+.lane-matchup {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    gap: 0;
+}
+
+.lane-side {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 6px;
+}
+
+.lane-side.radiant { background-color: rgba(46, 204, 113, 0.03); }
+.lane-side.dire    { background-color: rgba(231, 76, 60, 0.03); }
+
+.lane-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    border-left: 1px dashed var(--border-color);
+    border-right: 1px dashed var(--border-color);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.lane-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* ===== Карточка игрока ===== */
+.lane-player {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.12s ease;
+}
+
+.lane-player:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.lane-player .hero-img {
+    width: 40px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.lane-player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.lane-player .player-name {
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: bold;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lane-player .player-name:hover {
+    color: var(--blue-link);
+    text-decoration: underline;
+}
+
+.lane-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.lane-stats span { white-space: nowrap; }
+.lane-stats strong {
+    color: var(--text-main);
+    font-weight: 600;
+    margin-left: 2px;
+}
+
+/* ===== Индикатор преимущества ===== */
+.advantage {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 4px;
+    min-width: 48px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.advantage.positive {
+    color: var(--radiant-green);
+    background: rgba(46, 204, 113, 0.12);
+    border: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+.advantage.negative {
+    color: var(--dire-red);
+    background: rgba(231, 76, 60, 0.12);
+    border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+/* ===== Адаптив ===== */
+@media (max-width: 820px) {
+    .lane-matchup {
+        grid-template-columns: 1fr;
+    }
+    .lane-vs {
+        border-left: none;
+        border-right: none;
+        border-top: 1px dashed var(--border-color);
+        border-bottom: 1px dashed var(--border-color);
+        padding: 6px;
+    }
+    .laning-header { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+    .lane-player {
+        grid-template-columns: 36px 1fr;
+    }
+    .advantage {
+        grid-column: 1 / -1;
+        justify-self: flex-end;
+    }
+    .laning-layout { padding: 12px; }
+    .lane-stats { font-size: 11px; gap: 8px; }
+}

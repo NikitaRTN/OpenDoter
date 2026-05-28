@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenDoter</title>
+    <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/header.css">
+    <link rel="stylesheet" href="/css/overview.css">
+</head>
+<body>
+<div class="container">
+    <header class="site-topbar">
+        <a class="brand-link" href="/">OpenDoter</a>
+        <form class="global-search" action="/search" method="get">
+            <input type="search" name="q" placeholder="Найти игрока или Match ID">
+            <button type="submit">Найти</button>
+        </form>
+    </header>
+
+    <section class="profile-panel">
+        <div class="team-header">
+            <div>
+                <span class="team-title">OpenDoter</span>
+                <span class="team-subtitle"> - поиск матчей и игроков</span>
+            </div>
+        </div>
+        <div class="empty-state">
+            <span>Введите ник игрока или Match ID в поиск сверху.</span>
+            <a class="profile-link" href="/search?q=dendi">Пример поиска</a>
+        </div>
+    </section>
+</div>
+</body>
+</html>
