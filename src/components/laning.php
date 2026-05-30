@@ -39,7 +39,7 @@ function render_laning_page(
                     <div class="lane-matchup">
                         <div class="lane-side radiant">
                             <?php if (empty($lane['radiant'])): ?>
-                                <div class="lane-empty">Нет данных</div>
+                                <div class="lane-empty">Нет игроков на линии</div>
                             <?php else: ?>
                                 <?php foreach ($lane['radiant'] as $p): ?>
                                     <?php render_laning_player($p); ?>
@@ -49,7 +49,7 @@ function render_laning_page(
                         <div class="lane-vs">VS</div>
                         <div class="lane-side dire">
                             <?php if (empty($lane['dire'])): ?>
-                                <div class="lane-empty">Нет данных</div>
+                                <div class="lane-empty">Нет игроков на линии</div>
                             <?php else: ?>
                                 <?php foreach ($lane['dire'] as $p): ?>
                                     <?php render_laning_player($p); ?>
@@ -104,9 +104,6 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
     foreach ([['radiant', $radiant_players], ['dire', $dire_players]] as [$team, $players]) {
         foreach ($players as $player) {
             $lane = detect_player_lane($player, $team);
-            if ($lane === null) {
-                continue;
-            }
             $by_lane[$lane][$team][] = summarize_laning_player($player, $team, $heroes);
         }
     }
@@ -117,14 +114,13 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
         if (empty($all_players)) {
             continue;
         }
-        
-        // Рассчитываем средний score для определения baseline
+
         $total_score = 0;
         foreach ($all_players as $p) {
             $total_score += calculate_player_score($p);
         }
         $avg_score = $total_score / count($all_players);
-        
+
         foreach ($data['radiant'] as $i => $p) {
             $player_score = calculate_player_score($p);
             $by_lane[$key]['radiant'][$i]['advantage'] = $avg_score > 0
@@ -166,81 +162,110 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
     ];
 }
 
-function detect_player_lane(array $player, string $team): ?string
+/**
+ * Определяем ФИЗИЧЕСКУЮ линию игрока (top / mid / bot).
+ *
+ * Карта Dota 2: база Света — внизу слева, база Тьмы — вверху справа.
+ * Поэтому одна и та же роль даёт разные физические линии для разных команд:
+ *   - safe lane:  Свет -> низ (bot), Тьма -> верх (top)
+ *   - off lane:   Свет -> верх (top), Тьма -> низ (bot)
+ *   - mid:        всегда центр
+ *
+ * Раньше функция сваливалась в обработку lane_pos как плоского массива, из-за
+ * чего array_count_values всегда возвращал доминанту 1 -> 'top', и ВСЕ игроки
+ * оказывались на верхней линии. Теперь приоритет сигналов:
+ *   1) lane_role (1=safe, 2=mid, 3=off) + сторона команды
+ *   2) усреднённая позиция на карте lane_pos (вложенный объект x => y => count)
+ *   3) поле lane (роль на линии) + сторона команды
+ *   4) player_slot как крайний резерв
+ */
+function detect_player_lane(array $player, string $team): string
 {
-    $is_roaming = (bool) ($player['is_roaming'] ?? false);
-    if ($is_roaming) {
-        return null;
+    $is_radiant = $team === 'radiant';
+
+    $lane_role = (int) ($player['lane_role'] ?? 0);
+    if ($lane_role >= 1 && $lane_role <= 3) {
+        return physical_lane_from_role($lane_role, $is_radiant);
+    }
+
+    if (!empty($player['lane_pos']) && is_array($player['lane_pos'])) {
+        $physical = physical_lane_from_lane_pos($player['lane_pos']);
+        if ($physical !== null) {
+            return $physical;
+        }
     }
 
     $lane = (int) ($player['lane'] ?? 0);
-    // lane: 1 = safe, 2 = mid, 3 = offlane, 4 = jungle, 5 = ancients
-    // Radiant: safe=bot, off=top; Dire: safe=top, off=bot
-    if ($team === 'radiant') {
-        if ($lane === 1) {
-            return 'bot';
-        }
-        if ($lane === 2) {
-            return 'mid';
-        }
-        if ($lane === 3) {
-            return 'top';
-        }
-    } else {
-        if ($lane === 1) {
-            return 'top';
-        }
-        if ($lane === 2) {
-            return 'mid';
-        }
-        if ($lane === 3) {
-            return 'bot';
-        }
+    if ($lane >= 1 && $lane <= 3) {
+        return physical_lane_from_role($lane, $is_radiant);
     }
 
-    // Try alternative lane field: lane_role
-    $lane_role = (int) ($player['lane_role'] ?? 0);
-    if ($lane_role >= 1 && $lane_role <= 3) {
-        if ($team === 'radiant') {
-            return match ($lane_role) {
-                1 => 'bot', 2 => 'mid', 3 => 'top',
-            };
-        }
-        return match ($lane_role) {
-            1 => 'top', 2 => 'mid', 3 => 'bot',
-        };
-    }
-
-    // Fallback по lane_pos (OpenDota: 1=top, 2=mid, 3=bot)
-    if (isset($player['lane_pos']) && is_array($player['lane_pos']) && !empty($player['lane_pos'])) {
-        $counts = array_count_values(array_map('intval', $player['lane_pos']));
-        arsort($counts);
-        $dominant = (int) array_key_first($counts);
-        if ($dominant >= 1 && $dominant <= 3) {
-            // lane_pos is PHYSICAL lane: 1=top, 2=mid, 3=bot
-            return match ($dominant) {
-                1 => 'top', 2 => 'mid', 3 => 'bot',
-            };
-        }
-    }
-
-    // Fallback по player_slot если lane/lane_pos не определены
     $slot = (int) ($player['player_slot'] ?? -1);
-    if ($slot >= 0 && $slot <= 4) { // Radiant slots
-        return match ($slot) {
-            0, 1 => 'bot',  // Safe lane
-            2 => 'mid',     // Mid
-            3, 4 => 'top',   // Offlane
-        };
-    } elseif ($slot >= 128 && $slot <= 132) { // Dire slots
-        return match ($slot) {
-            128, 129 => 'top',  // Safe lane  
-            130 => 'mid',        // Mid
-            131, 132 => 'bot',   // Offlane
-        };
+    $order = $slot >= 128 ? $slot - 128 : $slot;
+    if ($order >= 0 && $order <= 4) {
+        $role = $order <= 1 ? 1 : ($order === 2 ? 2 : 3);
+        return physical_lane_from_role($role, $is_radiant);
     }
 
     return 'mid';
+}
+
+function physical_lane_from_role(int $role, bool $is_radiant): string
+{
+    if ($role === 2) {
+        return 'mid';
+    }
+    if ($role === 1) {
+        // safe lane
+        return $is_radiant ? 'bot' : 'top';
+    }
+    // off lane (role 3)
+    return $is_radiant ? 'top' : 'bot';
+}
+
+/**
+ * lane_pos в OpenDota — вложенный объект вида { x => { y => count } }, где x и y —
+ * координаты на карте (~64..192, центр ~128). Считаем взвешенный центр позиций и
+ * определяем линию геометрически (не зависит от стороны команды — это физическая
+ * линия на карте):
+ *   - верх-слева  (y > x) -> top
+ *   - низ-справа  (x > y) -> bot
+ *   - по диагонали (x ≈ y) -> mid
+ */
+function physical_lane_from_lane_pos(array $lane_pos): ?string
+{
+    $sum_x = 0.0;
+    $sum_y = 0.0;
+    $weight = 0.0;
+
+    foreach ($lane_pos as $x => $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        foreach ($row as $y => $count) {
+            $c = (float) $count;
+            if ($c <= 0) {
+                continue;
+            }
+            $sum_x += ((float) $x) * $c;
+            $sum_y += ((float) $y) * $c;
+            $weight += $c;
+        }
+    }
+
+    if ($weight <= 0) {
+        return null;
+    }
+
+    $avg_x = $sum_x / $weight;
+    $avg_y = $sum_y / $weight;
+    $diagonal = $avg_y - $avg_x;
+
+    if (abs($diagonal) <= 16.0) {
+        return 'mid';
+    }
+
+    return $diagonal > 0 ? 'top' : 'bot';
 }
 
 function summarize_laning_player(array $player, string $team, array $heroes): array
@@ -251,7 +276,6 @@ function summarize_laning_player(array $player, string $team, array $heroes): ar
     $xp_t = is_array($player['xp_t'] ?? null) ? $player['xp_t'] : [];
     $gold_t = is_array($player['gold_t'] ?? null) ? $player['gold_t'] : [];
 
-    // Суммируем CS за первые 10 минут (индексы 0-9)
     $cs = 0;
     if (!empty($lh_t)) {
         $cs += (int) array_sum(array_slice($lh_t, 0, 10));
@@ -260,7 +284,6 @@ function summarize_laning_player(array $player, string $team, array $heroes): ar
         $cs += (int) array_sum(array_slice($dn_t, 0, 10));
     }
 
-    // Золото: используем gold_t[9] (золото на 10-й минуте) или сумму gpm_t
     $gold = 0;
     if (!empty($gold_t)) {
         $gold = (int) ($gold_t[9] ?? end($gold_t) ?? 0);
@@ -268,13 +291,11 @@ function summarize_laning_player(array $player, string $team, array $heroes): ar
         $gold = (int) array_sum(array_slice($gpm_t, 0, 10));
     }
 
-    // XP: используем xp_t[9] или сумму xpm_t
     $xp = 0;
     if (!empty($xp_t)) {
         $xp = (int) ($xp_t[9] ?? end($xp_t) ?? 0);
     }
 
-    // Уровень: если API предоставляет level, используем его, иначе рассчитываем по XP
     $level = isset($player['level']) && is_int($player['level']) && $player['level'] > 0
         ? (int) $player['level']
         : xp_to_level($xp);
@@ -315,7 +336,6 @@ function count_kills_before(array $log, int $seconds): int
 
 function xp_to_level(int $xp): int
 {
-    // Пороги XP Dota 2 (упрощённо)
     $thresholds = [
         0, 230, 600, 1080, 1680, 2300, 2940, 3600, 4280, 5080,
         5900, 6740, 7640, 8865, 10115, 11390, 12690, 14015, 15415, 16905,
