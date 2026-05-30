@@ -46,18 +46,20 @@ try {
         $page = load_match_context($config, (string) $route['match_id']);
         extract($page, EXTR_SKIP);
 
+        $known_tabs = [
+            'overview', 'benchmarks', 'stats', 'laning', 'damage', 'gold', 'items',
+            'graphs', 'abilities', 'objectives', 'vision', 'actions', 'teamfights',
+            'fantasy', 'chat', 'story', 'log', 'cosmetics',
+        ];
+
         require __DIR__ . '/src/header.php';
-        if ($current_tab === 'vision') {
-            require __DIR__ . '/src/views/vision.php';
-        } elseif ($current_tab === 'overview') {
-            require __DIR__ . '/src/views/overview.php';
-        } elseif ($current_tab === 'laning') {
-            require __DIR__ . '/src/views/laning.php';
+
+        $view_file = __DIR__ . '/src/views/' . $current_tab . '.php';
+        if (in_array($current_tab, $known_tabs, true) && is_file($view_file)) {
+            require $view_file;
         } else {
-            render_error_box('Раздел в разработке', 'Пока подключены обзор и вижен для красивых URL.', [
-                'Матч доступен: ' . match_url((string) $match_id, 'overview'),
-                'Вижен доступен: ' . match_url((string) $match_id, 'vision'),
-                'Лейнинг доступен: ' . match_url((string) $match_id, 'laning'),
+            render_error_box('Раздел не найден', 'Такой вкладки у матча нет.', [
+                'Обзор доступен: ' . match_url((string) $match_id, 'overview'),
             ]);
         }
         require __DIR__ . '/src/footer.php';
