@@ -1,4 +1,10 @@
+# Serve index.php as the directory entry point (front controller),
+# never an index.html that may exist in a folder.
+DirectoryIndex index.php
+
 RewriteEngine On
+
+# Route every request that is not a real file or directory to index.php.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
