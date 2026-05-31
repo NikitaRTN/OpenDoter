@@ -12,7 +12,7 @@ function render_player_profile(array $profile, array $matches, array $heroes): v
         <div class="flex items-center gap-3.5">
             <?php if ($avatar !== ''): ?><img class="h-[84px] w-[84px] rounded border border-line object-cover" src="<?php echo e($avatar); ?>" alt=""><?php endif; ?>
             <div>
-                <h1 class="m-0 mb-1.5 text-[22px] font-bold"><?php echo e($name); ?></h1>
+                <h1 class="m-0 mb-1.5 text-[22px] font-bold text-main"><?php echo e($name); ?></h1>
                 <div class="flex flex-wrap gap-2.5 text-muted">
                     <span>Account ID: <?php echo e($data['account_id'] ?? '-'); ?></span>
                     <span><?php echo e(get_rank_title($profile['rank_tier'] ?? 0)); ?></span>
@@ -28,7 +28,7 @@ function render_player_profile(array $profile, array $matches, array $heroes): v
     <section class="mb-5 rounded-lg border border-line bg-panel p-4">
         <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
             <div>
-                <span class="text-base font-bold uppercase tracking-wide">Матчи игрока</span>
+                <span class="text-base font-bold uppercase tracking-wide text-main">Матчи игрока</span>
                 <span class="text-muted"> - выберите матч для просмотра</span>
             </div>
         </div>

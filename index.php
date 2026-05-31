@@ -40,7 +40,7 @@ try {
         <section class="mb-5 rounded-lg border border-line bg-panel p-4">
             <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
                 <div>
-                    <span class="text-base font-bold uppercase tracking-wide">OpenDoter</span>
+                    <span class="text-base font-bold uppercase tracking-wide text-main">OpenDoter</span>
                     <span class="text-muted"> - поиск матчей и игроков</span>
                 </div>
             </div>
@@ -67,7 +67,7 @@ try {
         } elseif ($current_tab === 'laning') {
             require __DIR__ . '/src/views/laning.php';
         } elseif (in_array($current_tab, match_tab_keys(), true)) {
-            require __DIR__ . '/src/views/generic_match_tab.php';
+            require __DIR__ . '/src/views/' . $current_tab . '.php';
         } else {
             render_error_box('Раздел не найден', 'Такой вкладки матча нет.', [
                 'Матч доступен: ' . match_url((string) $match_id, 'overview'),
