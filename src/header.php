@@ -100,7 +100,7 @@ $is_match_page = isset($match_id, $match);
         </div>
     </div>
 
-    <nav class="mb-6 flex gap-1 overflow-x-auto border-b border-line pb-1.5" aria-label="Навигация по матчу">
+    <nav class="mb-6 flex flex-wrap gap-1 border-b border-line pb-1.5" aria-label="Навигация по матчу">
         <?php foreach ($tabs as $tab => $name): ?>
             <a href="<?php echo e(match_url((string) $match_id, $tab)); ?>"
                class="whitespace-nowrap border-b-2 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors <?php echo ($current_tab === $tab) ? 'border-link bg-link/5 text-link' : 'border-transparent text-muted hover:border-muted hover:text-main'; ?>">

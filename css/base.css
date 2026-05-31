@@ -20,6 +20,7 @@ body {
 
 a {
     color: var(--blue-link);
+    text-decoration: none;
     transition: color var(--transition-fast);
 }
 

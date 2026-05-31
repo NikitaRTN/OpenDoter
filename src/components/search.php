@@ -8,7 +8,7 @@ function render_search_page(string $query, array $players, ?array $match): void
     <section class="mb-5 rounded-lg border border-line bg-panel p-4">
         <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
             <div>
-                <span class="text-base font-bold uppercase tracking-wide">Поиск</span>
+                <span class="text-base font-bold uppercase tracking-wide text-main">Поиск</span>
                 <span class="text-muted"> - игроки и матчи</span>
             </div>
         </div>
