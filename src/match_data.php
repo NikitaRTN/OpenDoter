@@ -21,6 +21,14 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
         "{$api_base}/constants/items.json",
         "{$public_api_base}/constants/items",
     ], $timeout, 'Предметы');
+    $abilities = fetch_first_optional_json([
+        "{$api_base}/constants/abilities.json",
+        "{$public_api_base}/constants/abilities",
+    ], $timeout);
+    $ability_ids = fetch_first_optional_json([
+        "{$api_base}/constants/ability_ids.json",
+        "{$public_api_base}/constants/ability_ids",
+    ], $timeout);
 
     [$match, $parsed] = normalize_match_response($match_response);
     if ($match === []) {
@@ -45,6 +53,8 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
         'heroes' => $heroes,
         'items' => $items,
         'items_by_id' => $items_by_id,
+        'abilities' => $abilities,
+        'ability_ids' => $ability_ids,
         'radiant_players' => $radiant_players,
         'dire_players' => $dire_players,
         'radiant_picks' => $draft['radiant_picks'],

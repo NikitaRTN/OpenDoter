@@ -1,0 +1,137 @@
+/* ===== Способности: билд прокачки ===== */
+.ability-build-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0;
+}
+
+.ability-note {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+    padding: 6px 10px;
+    background: rgba(241, 196, 15, 0.06);
+    border: 1px solid rgba(241, 196, 15, 0.2);
+    border-radius: 6px;
+}
+
+.ability-build-card {
+    background-color: var(--bg-table);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.ability-build-hero {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.ability-build-hero .hero-img {
+    width: 48px;
+    height: 27px;
+    object-fit: cover;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.ability-build-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ability-build-meta .player-name {
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.ability-build-meta .player-name:hover {
+    color: var(--blue-link);
+    text-decoration: underline;
+}
+
+.ability-build-sub {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.ability-build-track {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+
+.ability-cell {
+    position: relative;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.ability-cell.talent {
+    border-color: var(--gold);
+    box-shadow: inset 0 0 0 1px rgba(241, 196, 15, 0.25);
+}
+
+.ability-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ability-level {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 3px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.65);
+    border-bottom-right-radius: 5px;
+    z-index: 2;
+}
+
+.ability-talent {
+    color: var(--gold);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.ability-fallback {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.ability-build-track::-webkit-scrollbar {
+    height: 6px;
+}
+
+.ability-build-track::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+@media (max-width: 480px) {
+    .ability-cell {
+        width: 36px;
+        height: 36px;
+    }
+}

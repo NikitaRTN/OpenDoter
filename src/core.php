@@ -16,3 +16,4 @@ require_once __DIR__ . '/components/player.php';
 require_once __DIR__ . '/components/search.php';
 require_once __DIR__ . '/components/laning.php';
 require_once __DIR__ . '/components/match_tabs.php';
+require_once __DIR__ . '/components/tabs/abilities.php';

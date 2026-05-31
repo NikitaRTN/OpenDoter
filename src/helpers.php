@@ -110,6 +110,59 @@ function get_item_title(int $item_id, array $items_by_id): string
     return ucwords(str_replace('_', ' ', $system_name));
 }
 
+/**
+ * Resolve a numeric ability id (as found in ability_upgrades_arr) to its
+ * internal ability name using the OpenDota ability_ids constant.
+ */
+function ability_name_from_id(int $ability_id, array $ability_ids): ?string
+{
+    if ($ability_id <= 0 || $ability_ids === []) {
+        return null;
+    }
+
+    // json_decode turns numeric string keys into int keys, so both work.
+    return $ability_ids[$ability_id] ?? ($ability_ids[(string) $ability_id] ?? null);
+}
+
+function get_ability_img(int $ability_id, array $abilities, array $ability_ids): ?string
+{
+    $name = ability_name_from_id($ability_id, $ability_ids);
+    if ($name === null || !isset($abilities[$name]) || !is_array($abilities[$name])) {
+        return null;
+    }
+
+    $img = (string) ($abilities[$name]['img'] ?? '');
+    if ($img === '') {
+        return null;
+    }
+
+    if (str_starts_with($img, 'http')) {
+        return explode('?', $img)[0];
+    }
+
+    return 'https://cdn.cloudflare.steamstatic.com' . explode('?', $img)[0];
+}
+
+function get_ability_name(int $ability_id, array $abilities, array $ability_ids): string
+{
+    $name = ability_name_from_id($ability_id, $ability_ids);
+    if ($name === null) {
+        return 'Способность #' . $ability_id;
+    }
+
+    if (isset($abilities[$name]['dname']) && $abilities[$name]['dname'] !== '') {
+        return (string) $abilities[$name]['dname'];
+    }
+
+    return ucwords(str_replace('_', ' ', $name));
+}
+
+function is_talent_ability(int $ability_id, array $abilities, array $ability_ids): bool
+{
+    $name = ability_name_from_id($ability_id, $ability_ids);
+    return $name !== null && str_starts_with($name, 'special_bonus');
+}
+
 function app_url(string $path = ''): string
 {
     $path = '/' . ltrim($path, '/');
