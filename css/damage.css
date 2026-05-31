@@ -1,0 +1,54 @@
+.damage-matrix th,
+.damage-matrix td {
+    font-size: 12px;
+}
+
+.dmg-hero-col {
+    width: 52px;
+}
+
+.dmg-hero-icon {
+    border-radius: 2px;
+    height: 24px;
+    object-fit: cover;
+    vertical-align: middle;
+    width: 42px;
+}
+
+.dmg-cell {
+    min-width: 58px;
+}
+
+.dmg-val {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.dmg-bar {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: var(--radius-pill);
+    display: block;
+    height: 5px;
+    margin: 0 auto;
+    overflow: hidden;
+    width: 100%;
+}
+
+.dmg-bar-fill {
+    border-radius: var(--radius-pill);
+    display: block;
+    height: 100%;
+}
+
+.dmg-bar-fill.tone-dealt {
+    background-color: var(--dire-red);
+}
+
+.dmg-bar-fill.tone-received {
+    background-color: var(--blue-link);
+}
+
+.dmg-bar-fill.tone-building {
+    background-color: var(--gold);
+}
