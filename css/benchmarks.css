@@ -1,0 +1,104 @@
+.benchmarks-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    margin-bottom: 25px;
+}
+
+.benchmark-card {
+    background-color: var(--bg-table);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+}
+
+.benchmark-card-head {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.benchmark-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.benchmark-row {
+    align-items: center;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 140px 1fr 78px;
+}
+
+.benchmark-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.benchmark-bar {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: var(--radius-pill);
+    height: 10px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.benchmark-bar-fill {
+    border-radius: var(--radius-pill);
+    height: 100%;
+    min-width: 2px;
+    transition: width var(--transition-base);
+}
+
+.benchmark-bar-fill.is-elite {
+    background-color: var(--gold);
+}
+
+.benchmark-bar-fill.is-good {
+    background-color: var(--radiant-green);
+}
+
+.benchmark-bar-fill.is-average {
+    background-color: var(--blue-link);
+}
+
+.benchmark-bar-fill.is-poor {
+    background-color: #e67e22;
+}
+
+.benchmark-bar-fill.is-low {
+    background-color: var(--dire-red);
+}
+
+.benchmark-bar-fill.is-empty {
+    background-color: transparent;
+}
+
+.benchmark-value {
+    align-items: baseline;
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.benchmark-pct {
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.benchmark-raw {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+@media (max-width: 600px) {
+    .benchmark-row {
+        grid-template-columns: 96px 1fr 64px;
+    }
+}
