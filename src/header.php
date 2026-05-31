@@ -66,6 +66,7 @@ $is_match_page = isset($match_id, $match);
     <link rel="stylesheet" href="<?php echo e(asset_url('css/benchmarks.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/vision.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/laning.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset_url('css/gold.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/abilities.css')); ?>">
 </head>
 <body class="bg-base text-main">
