@@ -308,12 +308,31 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
  * Determines where a player actually spent the laning phase.
  * Returns one of: 'top', 'mid', 'bot', 'jungle'.
  *
- * Priority is given to OpenDota's parsed fields (is_roaming, lane_role, lane)
- * because the player-slot order is NOT a reliable indicator of the physical
- * lane — relying on it previously forced junglers/roamers onto mid.
+ * Order of trust:
+ *   1. Explicit parsed fields (is_roaming / lane_role / lane), when present.
+ *   2. Otherwise, derive them from `lane_pos` using OpenDota's own algorithm.
+ *      Many self-hosted parsers emit only the raw `lane_pos` position heatmap
+ *      and omit lane/lane_role/is_roaming, which previously forced every player
+ *      onto a slot-based guess (junglers shown on mid, mid on top, and so on).
  */
 function detect_player_role(array $player, string $team): string
 {
+    if (
+        !isset($player['lane'])
+        && !isset($player['lane_role'])
+        && is_array($player['lane_pos'] ?? null)
+        && $player['lane_pos'] !== []
+    ) {
+        $derived = lane_from_lane_pos($player['lane_pos'], $team === 'radiant');
+        if ($derived['lane'] > 0) {
+            $player['lane'] = $derived['lane'];
+            $player['lane_role'] = $derived['lane_role'];
+            if (!isset($player['is_roaming'])) {
+                $player['is_roaming'] = $derived['is_roaming'];
+            }
+        }
+    }
+
     // Roamers and junglers are not part of a standard lane matchup.
     if ((bool) ($player['is_roaming'] ?? false)) {
         return 'jungle';
@@ -343,6 +362,99 @@ function detect_player_role(array $player, string $team): string
     // Last resort: a rough guess from the player slot. Unknown stays out of the
     // lanes so it never overlaps a real laner.
     return detect_lane_from_player_slot((int) ($player['player_slot'] ?? -1)) ?? 'jungle';
+}
+
+/**
+ * Ports OpenDota's lane detection (svc/util/compute.ts getLaneFromPosData).
+ * Buckets every position sample in `lane_pos` into a lane region via the
+ * laneMappings grid, then returns the dominant lane plus the derived role and
+ * a roaming flag (dominant lane present <45% of the time => roaming).
+ *
+ * Lane constants: 1 = bottom, 2 = mid, 3 = top, 4 = Radiant jungle, 5 = Dire jungle.
+ */
+function lane_from_lane_pos(array $lane_pos, bool $is_radiant): array
+{
+    $map = laning_lane_mappings();
+    $counts = [];
+    $total = 0;
+
+    foreach ($lane_pos as $x => $ys) {
+        if (!is_array($ys)) {
+            continue;
+        }
+        $adj_x = (int) $x - 64;
+        foreach ($ys as $y => $val) {
+            $val = (int) $val;
+            if ($val <= 0) {
+                continue;
+            }
+            $adj_y = 192 - (int) $y; // 128 - ((int) $y - 64)
+            if ($adj_x < 0 || $adj_x > 127 || $adj_y < 0 || $adj_y > 127) {
+                continue;
+            }
+            $lane = $map[$adj_y][$adj_x];
+            $counts[$lane] = ($counts[$lane] ?? 0) + $val;
+            $total += $val;
+        }
+    }
+
+    if ($total === 0 || $counts === []) {
+        return ['lane' => 0, 'lane_role' => 0, 'is_roaming' => false];
+    }
+
+    arsort($counts);
+    $lane = (int) array_key_first($counts);
+    $mode_count = (int) $counts[$lane];
+
+    $lane_roles = [
+        1 => $is_radiant ? 1 : 3,
+        2 => 2,
+        3 => $is_radiant ? 3 : 1,
+        4 => 4,
+        5 => 4,
+    ];
+
+    return [
+        'lane' => $lane,
+        'lane_role' => $lane_roles[$lane] ?? 0,
+        'is_roaming' => ($mode_count / $total) < 0.45,
+    ];
+}
+
+/**
+ * Builds OpenDota's 128x128 lane-region lookup grid (laneMappings.ts), indexed
+ * as $map[adjY][adjX]. Computed once per request.
+ */
+function laning_lane_mappings(): array
+{
+    static $map = null;
+    if ($map !== null) {
+        return $map;
+    }
+
+    $map = [];
+    for ($i = 0; $i < 128; $i++) {
+        $row = [];
+        for ($j = 0; $j < 128; $j++) {
+            if (abs($i - (127 - $j)) < 8) {
+                $lane = 2; // mid
+            } elseif ($j < 27 || $i < 27) {
+                $lane = 3; // top
+            } elseif ($j >= 100 || $i >= 100) {
+                $lane = 1; // bot
+            } elseif ($i < 50) {
+                $lane = 5; // dire jungle
+            } elseif ($i >= 77) {
+                $lane = 4; // radiant jungle
+            } else {
+                $lane = 2; // mid
+            }
+            $row[] = $lane;
+        }
+        $map[] = $row;
+    }
+
+    return $map;
 }
 
 function detect_lane_from_player_slot(int $slot): ?string
