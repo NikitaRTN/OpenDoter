@@ -37,16 +37,16 @@ try {
         $page_title = 'OpenDoter';
         require __DIR__ . '/src/header.php';
         ?>
-        <section class="profile-panel">
-            <div class="team-header">
+        <section class="mb-5 rounded-lg border border-line bg-panel p-4">
+            <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
                 <div>
-                    <span class="team-title">OpenDoter</span>
-                    <span class="team-subtitle"> - поиск матчей и игроков</span>
+                    <span class="text-base font-bold uppercase tracking-wide">OpenDoter</span>
+                    <span class="text-muted"> - поиск матчей и игроков</span>
                 </div>
             </div>
-            <div class="empty-state">
+            <div class="flex flex-col gap-3 rounded-lg border border-line bg-black/15 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <span>Введите ник игрока или Match ID в поиск сверху.</span>
-                <a class="profile-link" href="<?php echo e(app_url('search?q=dendi')); ?>">Пример поиска</a>
+                <a class="inline-block rounded border border-link bg-link/10 px-4 py-2 text-xs font-bold uppercase text-link transition-colors hover:bg-link/20 hover:text-link-hover" href="<?php echo e(app_url('search?q=dendi')); ?>">Пример поиска</a>
             </div>
         </section>
         <?php
