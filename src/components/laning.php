@@ -18,7 +18,7 @@ function render_laning_page(
                 <div>
                     <div class="laning-title">Лейнинг</div>
                     <div class="laning-subtitle">
-                        Анализ первых 10 минут: кто выиграл линии по CS, золоту, опыту и киллам
+                        Анализ первых 10 минут: линии определяются по карте и слотам игроков, а не по одному общему lane-полю
                     </div>
                 </div>
                 <div class="laning-summary">
@@ -74,14 +74,18 @@ function render_laning_player(array $p): void
             <img class="hero-img" src="<?php echo e($p['hero_img']); ?>" alt="">
         <?php endif; ?>
         <div class="lane-player-info">
-            <a class="player-name" href="<?php echo e(player_url($p['account_id'])); ?>">
-                <?php echo e($p['name']); ?>
-            </a>
+            <?php if (!empty($p['account_id'])): ?>
+                <a class="player-name" href="<?php echo e(player_url($p['account_id'])); ?>">
+                    <?php echo e($p['name']); ?>
+                </a>
+            <?php else: ?>
+                <span class="player-name"><?php echo e($p['name']); ?></span>
+            <?php endif; ?>
             <div class="lane-stats">
-                <span title="Добито крипов">CS: <strong><?php echo e((string) $p['cs']); ?></strong></span>
-                <span title="Золото за 10 мин.">Зол: <strong><?php echo e((string) $p['gold']); ?></strong></span>
-                <span title="Уровень">Ур: <strong><?php echo e((string) $p['level']); ?></strong></span>
-                <span title="Убийства / Смерти">К/Д: <strong><?php echo e($p['kills'] . '/' . $p['deaths']); ?></strong></span>
+                <span title="Добитые и заденаенные крипы к 10 минуте">CS: <strong><?php echo e((string) $p['cs']); ?></strong></span>
+                <span title="Золото к 10 минуте">Зол: <strong><?php echo e((string) $p['gold']); ?></strong></span>
+                <span title="Уровень к 10 минуте">Ур: <strong><?php echo e((string) $p['level']); ?></strong></span>
+                <span title="Убийства / Смерти до 10 минуты">К/Д: <strong><?php echo e($p['kills'] . '/' . $p['deaths']); ?></strong></span>
             </div>
         </div>
         <?php if ($adv !== 0): ?>
@@ -103,39 +107,37 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
 
     foreach ([['radiant', $radiant_players], ['dire', $dire_players]] as [$team, $players]) {
         foreach ($players as $player) {
-            $lane = detect_player_lane($player, $team);
-            if ($lane === null) {
+            if ((bool) ($player['is_roaming'] ?? false)) {
                 continue;
             }
+
+            $lane = detect_player_lane($player, $team);
             $by_lane[$lane][$team][] = summarize_laning_player($player, $team, $heroes);
         }
     }
 
-    // Определяем противников на линии — чтобы посчитать индивидуальный "advantage"
     foreach ($by_lane as $key => $data) {
-        $all_players = array_merge($data['radiant'], $data['dire']);
+        usort($by_lane[$key]['radiant'], 'sort_laning_players_by_slot');
+        usort($by_lane[$key]['dire'], 'sort_laning_players_by_slot');
+
+        $all_players = array_merge($by_lane[$key]['radiant'], $by_lane[$key]['dire']);
         if (empty($all_players)) {
             continue;
         }
-        
-        // Рассчитываем средний score для определения baseline
+
         $total_score = 0;
         foreach ($all_players as $p) {
             $total_score += calculate_player_score($p);
         }
         $avg_score = $total_score / count($all_players);
-        
-        foreach ($data['radiant'] as $i => $p) {
-            $player_score = calculate_player_score($p);
-            $by_lane[$key]['radiant'][$i]['advantage'] = $avg_score > 0
-                ? (int) round((($player_score - $avg_score) / $avg_score) * 100)
-                : 0;
-        }
-        foreach ($data['dire'] as $i => $p) {
-            $player_score = calculate_player_score($p);
-            $by_lane[$key]['dire'][$i]['advantage'] = $avg_score > 0
-                ? (int) round((($player_score - $avg_score) / $avg_score) * 100)
-                : 0;
+
+        foreach (['radiant', 'dire'] as $team) {
+            foreach ($by_lane[$key][$team] as $i => $p) {
+                $player_score = calculate_player_score($p);
+                $by_lane[$key][$team][$i]['advantage'] = $avg_score > 0
+                    ? (int) round((($player_score - $avg_score) / $avg_score) * 100)
+                    : 0;
+            }
         }
     }
 
@@ -166,139 +168,135 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
     ];
 }
 
-function detect_player_lane(array $player, string $team): ?string
+function detect_player_lane(array $player, string $team): string
 {
-    $is_roaming = (bool) ($player['is_roaming'] ?? false);
-    if ($is_roaming) {
-        return null;
+    $lane_from_positions = detect_lane_from_position_log($player['lane_pos'] ?? null);
+    if ($lane_from_positions !== null) {
+        return $lane_from_positions;
+    }
+
+    $slot_lane = detect_lane_from_player_slot((int) ($player['player_slot'] ?? -1));
+    if ($slot_lane !== null) {
+        return $slot_lane;
+    }
+
+    $lane_role = (int) ($player['lane_role'] ?? 0);
+    if ($lane_role >= 1 && $lane_role <= 3) {
+        return lane_role_to_physical_lane($lane_role, $team);
     }
 
     $lane = (int) ($player['lane'] ?? 0);
-    // lane: 1 = safe, 2 = mid, 3 = offlane, 4 = jungle, 5 = ancients
-    // Radiant: safe=bot, off=top; Dire: safe=top, off=bot
-    if ($team === 'radiant') {
-        if ($lane === 1) {
-            return 'bot';
-        }
-        if ($lane === 2) {
-            return 'mid';
-        }
-        if ($lane === 3) {
-            return 'top';
-        }
-    } else {
-        if ($lane === 1) {
-            return 'top';
-        }
-        if ($lane === 2) {
-            return 'mid';
-        }
-        if ($lane === 3) {
-            return 'bot';
-        }
-    }
-
-    // Try alternative lane field: lane_role
-    $lane_role = (int) ($player['lane_role'] ?? 0);
-    if ($lane_role >= 1 && $lane_role <= 3) {
-        if ($team === 'radiant') {
-            return match ($lane_role) {
-                1 => 'bot', 2 => 'mid', 3 => 'top',
-            };
-        }
-        return match ($lane_role) {
-            1 => 'top', 2 => 'mid', 3 => 'bot',
-        };
-    }
-
-    // Fallback по lane_pos (OpenDota: 1=top, 2=mid, 3=bot)
-    if (isset($player['lane_pos']) && is_array($player['lane_pos']) && !empty($player['lane_pos'])) {
-        $counts = array_count_values(array_map('intval', $player['lane_pos']));
-        arsort($counts);
-        $dominant = (int) array_key_first($counts);
-        if ($dominant >= 1 && $dominant <= 3) {
-            // lane_pos is PHYSICAL lane: 1=top, 2=mid, 3=bot
-            return match ($dominant) {
-                1 => 'top', 2 => 'mid', 3 => 'bot',
-            };
-        }
-    }
-
-    // Fallback по player_slot если lane/lane_pos не определены
-    $slot = (int) ($player['player_slot'] ?? -1);
-    if ($slot >= 0 && $slot <= 4) { // Radiant slots
-        return match ($slot) {
-            0, 1 => 'bot',  // Safe lane
-            2 => 'mid',     // Mid
-            3, 4 => 'top',   // Offlane
-        };
-    } elseif ($slot >= 128 && $slot <= 132) { // Dire slots
-        return match ($slot) {
-            128, 129 => 'top',  // Safe lane  
-            130 => 'mid',        // Mid
-            131, 132 => 'bot',   // Offlane
-        };
+    if ($lane >= 1 && $lane <= 3) {
+        return lane_role_to_physical_lane($lane, $team);
     }
 
     return 'mid';
+}
+
+function detect_lane_from_position_log(mixed $lane_pos): ?string
+{
+    if (!is_array($lane_pos) || $lane_pos === []) {
+        return null;
+    }
+
+    $counts = ['top' => 0, 'mid' => 0, 'bot' => 0];
+    foreach ($lane_pos as $key => $value) {
+        $lane_value = is_numeric($value) ? (int) $value : (int) $key;
+        $weight = is_string($key) && ctype_digit($key) ? 1 : max(1, (int) $value);
+
+        if ($lane_value === 1) {
+            $counts['top'] += $weight;
+        } elseif ($lane_value === 2) {
+            $counts['mid'] += $weight;
+        } elseif ($lane_value === 3) {
+            $counts['bot'] += $weight;
+        }
+    }
+
+    arsort($counts);
+    $lane = array_key_first($counts);
+    return $counts[$lane] > 0 ? $lane : null;
+}
+
+function detect_lane_from_player_slot(int $slot): ?string
+{
+    return match ($slot) {
+        0, 1 => 'bot',
+        2 => 'mid',
+        3, 4 => 'top',
+        128, 129 => 'top',
+        130 => 'mid',
+        131, 132 => 'bot',
+        default => null,
+    };
+}
+
+function lane_role_to_physical_lane(int $lane_role, string $team): string
+{
+    if ($team === 'radiant') {
+        return match ($lane_role) {
+            1 => 'bot',
+            2 => 'mid',
+            3 => 'top',
+            default => 'mid',
+        };
+    }
+
+    return match ($lane_role) {
+        1 => 'top',
+        2 => 'mid',
+        3 => 'bot',
+        default => 'mid',
+    };
 }
 
 function summarize_laning_player(array $player, string $team, array $heroes): array
 {
     $lh_t = is_array($player['lh_t'] ?? null) ? $player['lh_t'] : [];
     $dn_t = is_array($player['dn_t'] ?? null) ? $player['dn_t'] : [];
-    $gpm_t = is_array($player['gpm_t'] ?? null) ? $player['gpm_t'] : [];
-    $xp_t = is_array($player['xp_t'] ?? null) ? $player['xp_t'] : [];
     $gold_t = is_array($player['gold_t'] ?? null) ? $player['gold_t'] : [];
+    $xp_t = is_array($player['xp_t'] ?? null) ? $player['xp_t'] : [];
 
-    // Суммируем CS за первые 10 минут (индексы 0-9)
-    $cs = 0;
-    if (!empty($lh_t)) {
-        $cs += (int) array_sum(array_slice($lh_t, 0, 10));
-    }
-    if (!empty($dn_t)) {
-        $cs += (int) array_sum(array_slice($dn_t, 0, 10));
-    }
+    $last_hits_10 = timeseries_value_at_minute($lh_t, 10, (int) ($player['last_hits'] ?? 0));
+    $denies_10 = timeseries_value_at_minute($dn_t, 10, (int) ($player['denies'] ?? 0));
+    $gold_10 = timeseries_value_at_minute($gold_t, 10, (int) ($player['total_gold'] ?? 0));
+    $xp_10 = timeseries_value_at_minute($xp_t, 10, 0);
 
-    // Золото: используем gold_t[9] (золото на 10-й минуте) или сумму gpm_t
-    $gold = 0;
-    if (!empty($gold_t)) {
-        $gold = (int) ($gold_t[9] ?? end($gold_t) ?? 0);
-    } elseif (!empty($gpm_t)) {
-        $gold = (int) array_sum(array_slice($gpm_t, 0, 10));
-    }
-
-    // XP: используем xp_t[9] или сумму xpm_t
-    $xp = 0;
-    if (!empty($xp_t)) {
-        $xp = (int) ($xp_t[9] ?? end($xp_t) ?? 0);
-    }
-
-    // Уровень: если API предоставляет level, используем его, иначе рассчитываем по XP
-    $level = isset($player['level']) && is_int($player['level']) && $player['level'] > 0
-        ? (int) $player['level']
-        : xp_to_level($xp);
-
-    $kills = count_kills_before($player['kills_log'] ?? [], 600);
-    $deaths_log = $player['killed_by'] ?? $player['deaths_log'] ?? [];
-    $deaths = count_kills_before($deaths_log, 600);
+    $kills = count_events_before($player['kills_log'] ?? [], 600);
+    $deaths = count_events_before($player['deaths_log'] ?? [], 600);
 
     return [
         'name' => (string) ($player['personaname'] ?? $player['name'] ?? 'Аноним'),
         'account_id' => (int) ($player['account_id'] ?? 0),
+        'player_slot' => (int) ($player['player_slot'] ?? 999),
         'hero_img' => get_hero_img((int) ($player['hero_id'] ?? 0), $heroes),
         'team' => $team,
-        'cs' => $cs,
-        'gold' => $gold,
-        'xp' => $xp,
-        'level' => $level,
+        'cs' => $last_hits_10 + $denies_10,
+        'gold' => $gold_10,
+        'xp' => $xp_10,
+        'level' => xp_to_level($xp_10),
         'kills' => $kills,
         'deaths' => $deaths,
         'advantage' => 0,
     ];
 }
 
-function count_kills_before(array $log, int $seconds): int
+function sort_laning_players_by_slot(array $a, array $b): int
+{
+    return ((int) ($a['player_slot'] ?? 999)) <=> ((int) ($b['player_slot'] ?? 999));
+}
+
+function timeseries_value_at_minute(array $values, int $minute, int $fallback = 0): int
+{
+    if ($values === []) {
+        return $fallback;
+    }
+
+    $index = min($minute, count($values) - 1);
+    return (int) ($values[$index] ?? end($values) ?: $fallback);
+}
+
+function count_events_before(array $log, int $seconds): int
 {
     $count = 0;
     foreach ($log as $entry) {
@@ -315,7 +313,6 @@ function count_kills_before(array $log, int $seconds): int
 
 function xp_to_level(int $xp): int
 {
-    // Пороги XP Dota 2 (упрощённо)
     $thresholds = [
         0, 230, 600, 1080, 1680, 2300, 2940, 3600, 4280, 5080,
         5900, 6740, 7640, 8865, 10115, 11390, 12690, 14015, 15415, 16905,
