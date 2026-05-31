@@ -9,7 +9,7 @@ function render_laning_page(
 ): void {
     $laning = build_laning_analysis($radiant_players, $dire_players, $heroes);
     $match_id = (string) ($match['match_id'] ?? '');
-    $has_data = !empty($laning['lanes']);
+    $has_data = !empty($laning['lanes']) || !empty($laning['jungle']['radiant']) || !empty($laning['jungle']['dire']);
     $control = $laning['control'];
     $won = $laning['lanes_won'];
     ?>
@@ -48,6 +48,8 @@ function render_laning_page(
             <?php foreach ($laning['lanes'] as $lane): ?>
                 <?php render_laning_lane_card($lane); ?>
             <?php endforeach; ?>
+
+            <?php render_laning_jungle_group($laning['jungle']); ?>
         </section>
     </div>
     <?php
@@ -130,6 +132,37 @@ function render_laning_lane_card(array $lane): void
     <?php
 }
 
+function render_laning_jungle_group(array $jungle): void
+{
+    $r = $jungle['radiant'] ?? [];
+    $d = $jungle['dire'] ?? [];
+    if (empty($r) && empty($d)) {
+        return;
+    }
+    ?>
+    <div class="ln-lane draw">
+        <div class="ln-lane-head">
+            <span class="ln-lane-name">Лес и роуминг</span>
+            <span class="ln-verdict draw">Вне линий</span>
+        </div>
+        <div class="ln-cols">
+            <div class="ln-col radiant">
+                <div class="ln-col-head radiant">Свет</div>
+                <?php if (empty($r)): ?>
+                    <div class="ln-empty">Никто не ушёл в лес</div>
+                <?php else: foreach ($r as $p): render_laning_player($p); endforeach; endif; ?>
+            </div>
+            <div class="ln-col dire">
+                <div class="ln-col-head dire">Тьма</div>
+                <?php if (empty($d)): ?>
+                    <div class="ln-empty">Никто не ушёл в лес</div>
+                <?php else: foreach ($d as $p): render_laning_player($p); endforeach; endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
 function render_laning_player(array $p): void
 {
     $adv = (int) $p['advantage'];
@@ -191,16 +224,22 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
         'mid' => ['radiant' => [], 'dire' => []],
         'bot' => ['radiant' => [], 'dire' => []],
     ];
+    $jungle = ['radiant' => [], 'dire' => []];
 
     foreach ([['radiant', $radiant_players], ['dire', $dire_players]] as [$team, $players]) {
         foreach ($players as $player) {
-            if ((bool) ($player['is_roaming'] ?? false)) {
-                continue;
+            $role = detect_player_role($player, $team);
+            $summary = summarize_laning_player($player, $team, $heroes);
+            if ($role === 'jungle') {
+                $jungle[$team][] = $summary;
+            } else {
+                $by_lane[$role][$team][] = $summary;
             }
-            $lane = detect_player_lane($player, $team);
-            $by_lane[$lane][$team][] = summarize_laning_player($player, $team, $heroes);
         }
     }
+
+    usort($jungle['radiant'], 'sort_laning_players_by_slot');
+    usort($jungle['dire'], 'sort_laning_players_by_slot');
 
     foreach ($by_lane as $key => $data) {
         usort($by_lane[$key]['radiant'], 'sort_laning_players_by_slot');
@@ -259,59 +298,51 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
 
     return [
         'lanes' => $lanes,
+        'jungle' => $jungle,
         'lanes_won' => $lanes_won,
         'control' => $control,
     ];
 }
 
-function detect_player_lane(array $player, string $team): string
+/**
+ * Determines where a player actually spent the laning phase.
+ * Returns one of: 'top', 'mid', 'bot', 'jungle'.
+ *
+ * Priority is given to OpenDota's parsed fields (is_roaming, lane_role, lane)
+ * because the player-slot order is NOT a reliable indicator of the physical
+ * lane — relying on it previously forced junglers/roamers onto mid.
+ */
+function detect_player_role(array $player, string $team): string
 {
-    $lane_from_positions = detect_lane_from_position_log($player['lane_pos'] ?? null);
-    if ($lane_from_positions !== null) {
-        return $lane_from_positions;
-    }
-
-    $slot_lane = detect_lane_from_player_slot((int) ($player['player_slot'] ?? -1));
-    if ($slot_lane !== null) {
-        return $slot_lane;
+    // Roamers and junglers are not part of a standard lane matchup.
+    if ((bool) ($player['is_roaming'] ?? false)) {
+        return 'jungle';
     }
 
     $lane_role = (int) ($player['lane_role'] ?? 0);
+    if ($lane_role === 4) {
+        return 'jungle';
+    }
+
+    // `lane` is the physically observed lane (1 = bottom, 2 = middle, 3 = top).
+    $lane = (int) ($player['lane'] ?? 0);
+    if ($lane >= 1 && $lane <= 3) {
+        return match ($lane) {
+            1 => 'bot',
+            2 => 'mid',
+            3 => 'top',
+            default => 'mid',
+        };
+    }
+
+    // Fall back to the assigned role (1 = safe, 2 = mid, 3 = off) mapped per side.
     if ($lane_role >= 1 && $lane_role <= 3) {
         return lane_role_to_physical_lane($lane_role, $team);
     }
 
-    $lane = (int) ($player['lane'] ?? 0);
-    if ($lane >= 1 && $lane <= 3) {
-        return lane_role_to_physical_lane($lane, $team);
-    }
-
-    return 'mid';
-}
-
-function detect_lane_from_position_log(mixed $lane_pos): ?string
-{
-    if (!is_array($lane_pos) || $lane_pos === []) {
-        return null;
-    }
-
-    $counts = ['top' => 0, 'mid' => 0, 'bot' => 0];
-    foreach ($lane_pos as $key => $value) {
-        $lane_value = is_numeric($value) ? (int) $value : (int) $key;
-        $weight = is_string($key) && ctype_digit($key) ? 1 : max(1, (int) $value);
-
-        if ($lane_value === 1) {
-            $counts['top'] += $weight;
-        } elseif ($lane_value === 2) {
-            $counts['mid'] += $weight;
-        } elseif ($lane_value === 3) {
-            $counts['bot'] += $weight;
-        }
-    }
-
-    arsort($counts);
-    $lane = array_key_first($counts);
-    return $counts[$lane] > 0 ? $lane : null;
+    // Last resort: a rough guess from the player slot. Unknown stays out of the
+    // lanes so it never overlaps a real laner.
+    return detect_lane_from_player_slot((int) ($player['player_slot'] ?? -1)) ?? 'jungle';
 }
 
 function detect_lane_from_player_slot(int $slot): ?string
