@@ -1,0 +1,128 @@
+.gold-adv {
+    margin-bottom: 22px;
+}
+
+.gold-adv:last-child {
+    margin-bottom: 0;
+}
+
+.gold-adv-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.gold-adv-title {
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.gold-adv-final {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.gold-adv-final.radiant { color: var(--radiant-green); }
+.gold-adv-final.dire { color: var(--dire-red); }
+.gold-adv-final.draw { color: var(--text-muted); }
+
+.gold-adv-wrap {
+    background-color: rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    position: relative;
+}
+
+.gold-adv-svg {
+    display: block;
+    height: 200px;
+    width: 100%;
+}
+
+.gold-adv-tag {
+    font-size: 10px;
+    font-weight: bold;
+    left: 14px;
+    letter-spacing: 0.4px;
+    pointer-events: none;
+    position: absolute;
+    text-transform: uppercase;
+}
+
+.gold-adv-tag.top { color: var(--radiant-green); opacity: 0.8; top: 10px; }
+.gold-adv-tag.bottom { bottom: 10px; color: var(--dire-red); opacity: 0.8; }
+
+.gold-adv-axis {
+    color: var(--text-muted);
+    display: flex;
+    font-size: 11px;
+    justify-content: space-between;
+    margin-top: 6px;
+}
+
+.gold-sources-table .gold-bar-cell {
+    min-width: 220px;
+    width: 40%;
+}
+
+.gold-bar {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-pill);
+    display: flex;
+    height: 12px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.gold-bar.empty {
+    align-items: center;
+}
+
+.gold-bar.empty::after {
+    color: var(--text-muted);
+    content: "нет данных";
+    font-size: 10px;
+    padding-left: 8px;
+}
+
+.gold-bar-seg {
+    display: block;
+    height: 100%;
+    transition: width var(--transition-base);
+}
+
+.gold-bar-seg.creeps,
+.gold-dot.creeps { background-color: #f1c40f; }
+.gold-bar-seg.heroes,
+.gold-dot.heroes { background-color: #e74c3c; }
+.gold-bar-seg.structures,
+.gold-dot.structures { background-color: #3498db; }
+.gold-bar-seg.other,
+.gold-dot.other { background-color: #7f8c8d; }
+
+.gold-legend {
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11px;
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.gold-legend-item {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+}
+
+.gold-dot {
+    border-radius: 2px;
+    display: inline-block;
+    height: 10px;
+    width: 10px;
+}

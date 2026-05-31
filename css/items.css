@@ -1,0 +1,76 @@
+.build-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.build-row:last-child {
+    border-bottom: none;
+}
+
+.build-player {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 190px;
+    flex-shrink: 0;
+}
+
+.build-player .hero-img {
+    width: 42px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+
+.build-player .player-name {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.build-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.build-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+}
+
+.build-item img {
+    width: 40px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+}
+
+.build-item .missing-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--text-muted);
+    font-weight: bold;
+}
+
+.build-time {
+    margin-top: 2px;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.build-empty {
+    align-self: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
