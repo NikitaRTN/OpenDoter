@@ -176,3 +176,20 @@ function fetch_first_required_json(array $urls, float $timeout, string $label): 
 
     throw new RuntimeException($label . ': ' . implode(' | ', $errors));
 }
+
+/**
+ * Like fetch_first_required_json, but never throws. Returns the first OK array
+ * response or an empty array if every URL fails. Use for optional/enrichment
+ * data (e.g. ability constants) that should not break the whole page.
+ */
+function fetch_first_optional_json(array $urls, float $timeout): array
+{
+    foreach ($urls as $url) {
+        $result = fetch_json($url, $timeout);
+        if ($result['ok'] && is_array($result['data'])) {
+            return $result['data'];
+        }
+    }
+
+    return [];
+}

@@ -10,56 +10,89 @@ function render_laning_page(
     $laning = build_laning_analysis($radiant_players, $dire_players, $heroes);
     $match_id = (string) ($match['match_id'] ?? '');
     $has_data = !empty($laning['lanes']);
+    $control = $laning['control'];
     ?>
     <?php render_detailed_stats_gate($match_id, 'статистики лейнинга', $has_data); ?>
     <div data-stats-content <?php echo $has_data ? '' : 'hidden'; ?>>
         <section class="laning-layout" data-laning-root>
             <div class="laning-header">
-                <div>
-                    <div class="laning-title">Лейнинг</div>
-                    <div class="laning-subtitle">
-                        Анализ первых 10 минут: линии определяются по карте и слотам игроков, а не по одному общему lane-полю
-                    </div>
+                <div class="laning-header-text">
+                    <div class="laning-title">Лейнинг · первые 10 минут</div>
+                    <div class="laning-subtitle">Линии определяются по позициям на карте и слотам. CS, золото и опыт — накопление к 10-й минуте.</div>
                 </div>
-                <div class="laning-summary">
-                    <span class="laning-score radiant">Свет: <strong><?php echo e((string) $laning['lanes_won']['radiant']); ?></strong></span>
-                    <span class="laning-score dire">Тьма: <strong><?php echo e((string) $laning['lanes_won']['dire']); ?></strong></span>
+                <div class="laning-scoreboard">
+                    <span class="laning-score radiant">Свет <strong><?php echo e((string) $laning['lanes_won']['radiant']); ?></strong></span>
+                    <span class="laning-score-vs">линий</span>
+                    <span class="laning-score dire"><strong><?php echo e((string) $laning['lanes_won']['dire']); ?></strong> Тьма</span>
                 </div>
             </div>
 
-            <?php foreach ($laning['lanes'] as $lane): ?>
-                <div class="laning-lane-card <?php echo e($lane['winner']); ?>">
-                    <div class="lane-header">
-                        <span class="lane-name"><?php echo e($lane['name']); ?></span>
-                        <span class="lane-winner <?php echo e($lane['winner']); ?>">
-                            <?php echo e($lane['winner_label']); ?>
-                        </span>
-                    </div>
+            <div class="lane-control-bar" title="Совокупный контроль линий по очкам">
+                <div class="lane-control-fill radiant" style="width: <?php echo e((string) $control['radiant']); ?>%"><span><?php echo e((string) $control['radiant']); ?>%</span></div>
+                <div class="lane-control-fill dire" style="width: <?php echo e((string) $control['dire']); ?>%"><span><?php echo e((string) $control['dire']); ?>%</span></div>
+            </div>
 
-                    <div class="lane-matchup">
-                        <div class="lane-side radiant">
-                            <?php if (empty($lane['radiant'])): ?>
-                                <div class="lane-empty">Нет данных</div>
-                            <?php else: ?>
-                                <?php foreach ($lane['radiant'] as $p): ?>
-                                    <?php render_laning_player($p); ?>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
-                        <div class="lane-vs">VS</div>
-                        <div class="lane-side dire">
-                            <?php if (empty($lane['dire'])): ?>
-                                <div class="lane-empty">Нет данных</div>
-                            <?php else: ?>
-                                <?php foreach ($lane['dire'] as $p): ?>
-                                    <?php render_laning_player($p); ?>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
+            <?php foreach ($laning['lanes'] as $lane): ?>
+                <?php render_laning_lane_card($lane); ?>
             <?php endforeach; ?>
         </section>
+    </div>
+    <?php
+}
+
+function render_laning_lane_card(array $lane): void
+{
+    $r_pct = (int) round((float) ($lane['radiant_pct'] ?? 50));
+    $r_pct = max(0, min(100, $r_pct));
+    $d_pct = 100 - $r_pct;
+
+    $r_series = laning_side_cs_series($lane['radiant']);
+    $d_series = laning_side_cs_series($lane['dire']);
+    $chart = laning_lane_chart($r_series, $d_series);
+    ?>
+    <div class="laning-lane-card <?php echo e($lane['winner']); ?>">
+        <div class="lane-header">
+            <span class="lane-name"><?php echo e($lane['name']); ?></span>
+            <span class="lane-winner <?php echo e($lane['winner']); ?>"><?php echo e($lane['winner_label']); ?></span>
+        </div>
+
+        <div class="lane-control-mini" title="Контроль этой линии">
+            <div class="lane-control-mini-fill radiant" style="width: <?php echo e((string) $r_pct); ?>%"></div>
+            <div class="lane-control-mini-fill dire" style="width: <?php echo e((string) $d_pct); ?>%"></div>
+        </div>
+
+        <div class="lane-matchup">
+            <div class="lane-side radiant">
+                <?php if (empty($lane['radiant'])): ?>
+                    <div class="lane-empty">Нет данных</div>
+                <?php else: ?>
+                    <?php foreach ($lane['radiant'] as $p): ?>
+                        <?php render_laning_player($p); ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+            <div class="lane-vs">VS</div>
+            <div class="lane-side dire">
+                <?php if (empty($lane['dire'])): ?>
+                    <div class="lane-empty">Нет данных</div>
+                <?php else: ?>
+                    <?php foreach ($lane['dire'] as $p): ?>
+                        <?php render_laning_player($p); ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if ($chart !== ''): ?>
+            <div class="lane-chart">
+                <div class="lane-chart-head">
+                    <span class="lane-chart-title">Крипы по времени (ластхиты 0–10 мин)</span>
+                    <span class="lane-chart-legend"><i class="dot radiant"></i>Свет<i class="dot dire"></i>Тьма</span>
+                </div>
+                <?php echo $chart; ?>
+                <div class="lane-chart-axis"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span></div>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
 }
@@ -67,31 +100,38 @@ function render_laning_page(
 function render_laning_player(array $p): void
 {
     $adv = (int) $p['advantage'];
-    $adv_class = $adv > 0 ? 'positive' : ($adv < 0 ? 'negative' : '');
+    $adv_class = $adv > 0 ? 'positive' : ($adv < 0 ? 'negative' : 'neutral');
+    $color = ($p['team'] ?? '') === 'radiant' ? '#2ecc71' : '#e74c3c';
+    $spark = laning_sparkline($p['lh_series'] ?? [], $color);
     ?>
     <div class="lane-player">
-        <?php if ($p['hero_img']): ?>
-            <img class="hero-img" src="<?php echo e($p['hero_img']); ?>" alt="">
-        <?php endif; ?>
-        <div class="lane-player-info">
-            <?php if (!empty($p['account_id'])): ?>
-                <a class="player-name" href="<?php echo e(player_url($p['account_id'])); ?>">
-                    <?php echo e($p['name']); ?>
-                </a>
-            <?php else: ?>
-                <span class="player-name"><?php echo e($p['name']); ?></span>
+        <div class="lane-player-top">
+            <?php if ($p['hero_img']): ?>
+                <img class="hero-img" src="<?php echo e($p['hero_img']); ?>" alt="">
             <?php endif; ?>
-            <div class="lane-stats">
-                <span title="Добитые и заденаенные крипы к 10 минуте">CS: <strong><?php echo e((string) $p['cs']); ?></strong></span>
-                <span title="Золото к 10 минуте">Зол: <strong><?php echo e((string) $p['gold']); ?></strong></span>
-                <span title="Уровень к 10 минуте">Ур: <strong><?php echo e((string) $p['level']); ?></strong></span>
-                <span title="Убийства / Смерти до 10 минуты">К/Д: <strong><?php echo e($p['kills'] . '/' . $p['deaths']); ?></strong></span>
+            <div class="lane-player-id">
+                <?php if (!empty($p['account_id'])): ?>
+                    <a class="player-name" href="<?php echo e(player_url($p['account_id'])); ?>"><?php echo e($p['name']); ?></a>
+                <?php else: ?>
+                    <span class="player-name"><?php echo e($p['name']); ?></span>
+                <?php endif; ?>
+                <span class="lane-player-kda">K/D <?php echo e($p['kills'] . '/' . $p['deaths']); ?> · Ур <?php echo e((string) $p['level']); ?></span>
             </div>
+            <?php if ($adv !== 0): ?>
+                <span class="advantage <?php echo e($adv_class); ?>"><?php echo $adv > 0 ? '+' : ''; ?><?php echo e((string) $adv); ?>%</span>
+            <?php endif; ?>
         </div>
-        <?php if ($adv !== 0): ?>
-            <span class="advantage <?php echo e($adv_class); ?>">
-                <?php echo $adv > 0 ? '+' : ''; ?><?php echo e((string) $adv); ?>%
-            </span>
+
+        <div class="lane-player-stats">
+            <span class="stat-chip" title="Ластхиты + денаи к 10 мин"><b><?php echo e((string) $p['cs']); ?></b><i>CS</i></span>
+            <span class="stat-chip" title="Ластхиты к 10 мин"><b><?php echo e((string) ($p['lh10'] ?? 0)); ?></b><i>LH</i></span>
+            <span class="stat-chip" title="Денаи к 10 мин"><b><?php echo e((string) ($p['dn10'] ?? 0)); ?></b><i>DN</i></span>
+            <span class="stat-chip" title="Золото в минуту к 10 мин"><b><?php echo e((string) ($p['gpm10'] ?? 0)); ?></b><i>GPM</i></span>
+            <span class="stat-chip" title="Опыт в минуту к 10 мин"><b><?php echo e((string) ($p['xpm10'] ?? 0)); ?></b><i>XPM</i></span>
+        </div>
+
+        <?php if ($spark !== ''): ?>
+            <div class="lane-player-spark" title="Накопление ластхитов до 10 мин"><?php echo $spark; ?></div>
         <?php endif; ?>
     </div>
     <?php
@@ -143,6 +183,8 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
 
     $lanes = [];
     $lanes_won = ['radiant' => 0, 'dire' => 0];
+    $total_r = 0;
+    $total_d = 0;
 
     foreach ($by_lane as $key => $data) {
         if (empty($data['radiant']) && empty($data['dire'])) {
@@ -152,6 +194,8 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
         if ($analysis['winner'] === 'radiant' || $analysis['winner'] === 'dire') {
             $lanes_won[$analysis['winner']]++;
         }
+        $total_r += score_side($data['radiant']);
+        $total_d += score_side($data['dire']);
         $lanes[] = [
             'key' => $key,
             'name' => lane_label($key),
@@ -159,12 +203,22 @@ function build_laning_analysis(array $radiant_players, array $dire_players, arra
             'dire' => $data['dire'],
             'winner' => $analysis['winner'],
             'winner_label' => $analysis['winner_label'],
+            'radiant_pct' => $analysis['radiant_pct'],
         ];
     }
+
+    $ctrl_total = $total_r + $total_d;
+    if ($ctrl_total > 0) {
+        $ctrl_radiant = (int) round($total_r / $ctrl_total * 100);
+    } else {
+        $ctrl_radiant = 50;
+    }
+    $control = ['radiant' => $ctrl_radiant, 'dire' => 100 - $ctrl_radiant];
 
     return [
         'lanes' => $lanes,
         'lanes_won' => $lanes_won,
+        'control' => $control,
     ];
 }
 
@@ -272,11 +326,16 @@ function summarize_laning_player(array $player, string $team, array $heroes): ar
         'hero_img' => get_hero_img((int) ($player['hero_id'] ?? 0), $heroes),
         'team' => $team,
         'cs' => $last_hits_10 + $denies_10,
+        'lh10' => $last_hits_10,
+        'dn10' => $denies_10,
         'gold' => $gold_10,
         'xp' => $xp_10,
+        'gpm10' => (int) round($gold_10 / 10),
+        'xpm10' => (int) round($xp_10 / 10),
         'level' => xp_to_level($xp_10),
         'kills' => $kills,
         'deaths' => $deaths,
+        'lh_series' => laning_series_slice($lh_t, 11),
         'advantage' => 0,
     ];
 }
@@ -294,6 +353,41 @@ function timeseries_value_at_minute(array $values, int $minute, int $fallback = 
 
     $index = min($minute, count($values) - 1);
     return (int) ($values[$index] ?? end($values) ?: $fallback);
+}
+
+/**
+ * Returns the first $count cumulative values of a per-minute time series.
+ * Missing points carry the last known value forward. Empty input yields [].
+ */
+function laning_series_slice(array $values, int $count): array
+{
+    if ($values === []) {
+        return [];
+    }
+
+    $out = [];
+    $last = 0;
+    for ($i = 0; $i < $count; $i++) {
+        if (isset($values[$i]) && is_numeric($values[$i])) {
+            $last = (int) $values[$i];
+        }
+        $out[] = $last;
+    }
+
+    return $out;
+}
+
+function laning_side_cs_series(array $players): array
+{
+    $out = [];
+    foreach ($players as $p) {
+        $series = $p['lh_series'] ?? [];
+        foreach ($series as $i => $v) {
+            $out[$i] = ($out[$i] ?? 0) + (int) $v;
+        }
+    }
+    ksort($out);
+    return array_values($out);
 }
 
 function count_events_before(array $log, int $seconds): int
@@ -351,23 +445,23 @@ function analyze_lane(array $radiant, array $dire): array
     $d_score = score_side($dire);
     $total = $r_score + $d_score;
 
-    if ($total === 0) {
-        return ['winner' => 'draw', 'winner_label' => 'Равная линия'];
+    if ($total <= 0) {
+        return ['winner' => 'draw', 'winner_label' => 'Равная линия', 'radiant_pct' => 50.0];
     }
 
     $r_pct = ($r_score / $total) * 100;
-    $d_pct = ($d_score / $total) * 100;
+    $d_pct = 100 - $r_pct;
 
     if (abs($r_pct - $d_pct) < 5) {
-        return ['winner' => 'draw', 'winner_label' => 'Равная линия'];
+        return ['winner' => 'draw', 'winner_label' => 'Равная линия', 'radiant_pct' => $r_pct];
     }
 
     if ($r_pct > $d_pct) {
         $diff = (int) round($r_pct - 50);
-        return ['winner' => 'radiant', 'winner_label' => 'Свет доминирует (+' . $diff . '%)'];
+        return ['winner' => 'radiant', 'winner_label' => 'Свет доминирует (+' . $diff . '%)', 'radiant_pct' => $r_pct];
     }
     $diff = (int) round($d_pct - 50);
-    return ['winner' => 'dire', 'winner_label' => 'Тьма доминирует (+' . $diff . '%)'];
+    return ['winner' => 'dire', 'winner_label' => 'Тьма доминирует (+' . $diff . '%)', 'radiant_pct' => $r_pct];
 }
 
 function lane_label(string $key): string
@@ -378,4 +472,113 @@ function lane_label(string $key): string
         'bot' => 'Нижняя линия (Bot)',
         default => $key,
     };
+}
+
+/**
+ * Renders a compact area sparkline (SVG) for a cumulative series. Returns '' if
+ * there are fewer than two data points.
+ */
+function laning_sparkline(array $series, string $color): string
+{
+    $series = array_values(array_map('intval', $series));
+    $n = count($series);
+    if ($n < 2) {
+        return '';
+    }
+
+    $w = 132;
+    $h = 38;
+    $pad = 4;
+    $max = max($series);
+    $min = min($series);
+    if ($max <= $min) {
+        $max = $min + 1;
+    }
+    $range = $max - $min;
+    $inner_w = $w - $pad * 2;
+    $inner_h = $h - $pad * 2;
+
+    $points = [];
+    foreach ($series as $i => $v) {
+        $x = $pad + ($inner_w * $i / ($n - 1));
+        $y = $pad + $inner_h - ($inner_h * ($v - $min) / $range);
+        $points[] = round($x, 1) . ',' . round($y, 1);
+    }
+    $line = implode(' ', $points);
+    $area = $pad . ',' . ($h - $pad) . ' ' . $line . ' ' . ($w - $pad) . ',' . ($h - $pad);
+
+    $last_x = $pad + $inner_w;
+    $last_y = $pad + $inner_h - ($inner_h * (end($series) - $min) / $range);
+    $uid = substr(md5($color . $line), 0, 6);
+
+    return '<svg class="ln-spark" viewBox="0 0 ' . $w . ' ' . $h . '" preserveAspectRatio="none" role="img" aria-hidden="true">'
+        . '<defs><linearGradient id="g' . $uid . '" x1="0" y1="0" x2="0" y2="1">'
+        . '<stop offset="0%" stop-color="' . $color . '" stop-opacity="0.35"/>'
+        . '<stop offset="100%" stop-color="' . $color . '" stop-opacity="0"/></linearGradient></defs>'
+        . '<polygon points="' . $area . '" fill="url(#g' . $uid . ')"/>'
+        . '<polyline points="' . $line . '" fill="none" stroke="' . $color . '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
+        . '<circle cx="' . round($last_x, 1) . '" cy="' . round($last_y, 1) . '" r="2.4" fill="' . $color . '"/>'
+        . '</svg>';
+}
+
+/**
+ * Renders a two-line comparison chart (Radiant vs Dire) of cumulative last hits
+ * over time. Returns '' if neither side has at least two data points.
+ */
+function laning_lane_chart(array $r_series, array $d_series): string
+{
+    $r_series = array_values(array_map('intval', $r_series));
+    $d_series = array_values(array_map('intval', $d_series));
+    $n = max(count($r_series), count($d_series));
+    if ($n < 2) {
+        return '';
+    }
+
+    $all = array_merge($r_series, $d_series);
+    $max = $all === [] ? 1 : max($all);
+    if ($max <= 0) {
+        $max = 1;
+    }
+
+    $w = 560;
+    $h = 150;
+    $pad_x = 8;
+    $pad_y = 12;
+    $inner_w = $w - $pad_x * 2;
+    $inner_h = $h - $pad_y * 2;
+
+    $make_points = static function (array $series) use ($n, $max, $pad_x, $pad_y, $inner_w, $inner_h): string {
+        if ($series === []) {
+            return '';
+        }
+        $count = count($series);
+        $last = end($series);
+        $points = [];
+        for ($i = 0; $i < $n; $i++) {
+            $v = $i < $count ? $series[$i] : $last;
+            $x = $pad_x + ($inner_w * $i / ($n - 1));
+            $y = $pad_y + $inner_h - ($inner_h * $v / $max);
+            $points[] = round($x, 1) . ',' . round($y, 1);
+        }
+        return implode(' ', $points);
+    };
+
+    $grid = '';
+    foreach ([0.0, 0.5, 1.0] as $frac) {
+        $y = round($pad_y + $inner_h - $inner_h * $frac, 1);
+        $grid .= '<line x1="' . $pad_x . '" y1="' . $y . '" x2="' . ($w - $pad_x) . '" y2="' . $y . '" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+    }
+
+    $svg = '<svg class="ln-lane-chart" viewBox="0 0 ' . $w . ' ' . $h . '" preserveAspectRatio="none" role="img" aria-hidden="true">' . $grid;
+
+    $r_points = $make_points($r_series);
+    if ($r_points !== '') {
+        $svg .= '<polyline points="' . $r_points . '" fill="none" stroke="#2ecc71" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+    $d_points = $make_points($d_series);
+    if ($d_points !== '') {
+        $svg .= '<polyline points="' . $d_points . '" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+
+    return $svg . '</svg>';
 }

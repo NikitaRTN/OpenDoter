@@ -50,7 +50,9 @@ function render_generic_match_tab(
     array $radiant_players,
     array $dire_players,
     array $heroes,
-    array $items_by_id
+    array $items_by_id,
+    array $abilities = [],
+    array $ability_ids = []
 ): void {
     $players = array_merge($radiant_players, $dire_players);
     ?>
@@ -91,7 +93,7 @@ function render_generic_match_tab(
                 render_graphs_match_tab($players, $heroes);
                 break;
             case 'abilities':
-                render_abilities_match_tab($players, $heroes);
+                render_abilities_match_tab($players, $heroes, $abilities, $ability_ids);
                 break;
             case 'objectives':
                 render_events_match_tab($match['objectives'] ?? [], 'Целей в данных матча нет.');
@@ -266,26 +268,6 @@ function render_graphs_match_tab(array $players, array $heroes): void
         'hero_damage' => 'Урон',
         'xp_per_min' => 'XPM',
     ]);
-}
-
-function render_abilities_match_tab(array $players, array $heroes): void
-{
-    $has_any = false;
-    foreach ($players as $player) {
-        if (!empty($player['ability_upgrades_arr']) && is_array($player['ability_upgrades_arr'])) {
-            $has_any = true;
-            break;
-        }
-    }
-    if (!$has_any) {
-        render_match_tab_empty('В ответе API нет подробной прокачки способностей для этого матча.');
-        return;
-    }
-    ?>
-    <table class="overview-table"><thead><tr><th>Игрок</th><th>Ability IDs по уровням</th></tr></thead><tbody>
-    <?php foreach ($players as $player): ?><tr><?php render_player_match_cells($player, $heroes); ?><td><?php echo e(implode(' → ', array_slice($player['ability_upgrades_arr'] ?? [], 0, 25))); ?></td></tr><?php endforeach; ?>
-    </tbody></table>
-    <?php
 }
 
 function render_actions_match_tab(array $players, array $heroes): void
