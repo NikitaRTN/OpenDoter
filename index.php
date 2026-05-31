@@ -53,8 +53,10 @@ try {
             require __DIR__ . '/src/views/overview.php';
         } elseif ($current_tab === 'laning') {
             require __DIR__ . '/src/views/laning.php';
+        } elseif (in_array($current_tab, match_tab_keys(), true)) {
+            require __DIR__ . '/src/views/generic_match_tab.php';
         } else {
-            render_error_box('Раздел в разработке', 'Пока подключены обзор и вижен для красивых URL.', [
+            render_error_box('Раздел не найден', 'Такой вкладки матча нет.', [
                 'Матч доступен: ' . match_url((string) $match_id, 'overview'),
                 'Вижен доступен: ' . match_url((string) $match_id, 'vision'),
                 'Лейнинг доступен: ' . match_url((string) $match_id, 'laning'),
