@@ -2,4 +2,5 @@
 
 declare(strict_types=1);
 
-render_damage_tab($radiant_players, $dire_players, $heroes);
+$players = array_merge($radiant_players, $dire_players);
+render_damage_page($players, $heroes);
