@@ -1,17 +1,40 @@
 :root {
-    --bg-main: #12171a;
+    /* Surfaces */
+    --bg-main: #0f1417;
     --bg-container: #1c242d;
     --bg-table: #171f25;
     --bg-header: #1c242d;
+    --bg-row-hover: #202a32;
     --border-color: #252f3a;
+
+    /* Text */
     --text-main: #d6d9dc;
     --text-muted: #8a96a3;
+
+    /* Accents */
     --radiant-green: #2ecc71;
     --dire-red: #e74c3c;
     --gold: #f1c40f;
     --blue-link: #3498db;
+    --blue-link-hover: #5dade2;
     --tab-active-border: #3498db;
+
+    /* Feedback */
     --error-bg: #3a1014;
     --error-border: #e74c3c;
     --error-text: #ffd9d9;
+
+    /* Design tokens */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-pill: 999px;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 14px;
+    --space-lg: 20px;
+    --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.5);
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --focus-ring: 0 0 0 2px rgba(52, 152, 219, 0.6);
 }
