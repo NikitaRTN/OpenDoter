@@ -18,22 +18,14 @@ function resolve_route(array $config): array
         return ['type' => 'api_parse'];
     }
 
-    if (preg_match('#^/api/status/(\d+)$#', $path, $matches)) {
+    if (preg_match('#^/api/status/(\\d+)$#', $path, $matches)) {
         return [
             'type' => 'api_status',
             'match_id' => $matches[1],
         ];
     }
 
-    if ($path === '/vision.php') {
-        return [
-            'type' => 'match',
-            'match_id' => (string) $config['match_id'],
-            'tab' => 'vision',
-        ];
-    }
-
-    if (preg_match('#^/matches/(\d+)(?:/([a-z_]+))?$#', $path, $matches)) {
+    if (preg_match('#^/matches/(\\d+)(?:/([a-z_]+))?$#', $path, $matches)) {
         return [
             'type' => 'match',
             'match_id' => $matches[1],
@@ -41,7 +33,7 @@ function resolve_route(array $config): array
         ];
     }
 
-    if (preg_match('#^/players/(\d+)$#', $path, $matches)) {
+    if (preg_match('#^/players/(\\d+)$#', $path, $matches)) {
         return [
             'type' => 'player',
             'account_id' => $matches[1],

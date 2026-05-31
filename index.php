@@ -2,6 +2,19 @@
 
 declare(strict_types=1);
 
+// Single entry point (front controller).
+//
+// On classic PHP hosting Apache rewrites every non-file request to this script
+// via .htaccess. When running the PHP built-in server for local development
+// (`php -S localhost:8000 index.php`) this same script is used as the router,
+// so existing static files (css, images, ...) must be served as-is.
+if (PHP_SAPI === 'cli-server') {
+    $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+    if ($requestPath !== '/' && is_file(__DIR__ . $requestPath)) {
+        return false;
+    }
+}
+
 require_once __DIR__ . '/src/core.php';
 
 try {
