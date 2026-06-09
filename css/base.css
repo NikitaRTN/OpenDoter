@@ -28,6 +28,53 @@ a:hover {
     color: var(--blue-link-hover);
 }
 
+button,
+input,
+select,
+textarea {
+    color: inherit;
+    font: inherit;
+}
+
+button {
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+}
+
+:where(button:hover:not(:disabled)) {
+    background: var(--bg-row-hover);
+    border-color: var(--blue-link);
+}
+
+:where(button:disabled) {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+    background: var(--bg-table);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--blue-link);
+}
+
 :focus-visible {
     outline: none;
     box-shadow: var(--focus-ring);
@@ -118,4 +165,36 @@ a:hover {
         -webkit-overflow-scrolling: touch;
         white-space: nowrap;
     }
+}
+
+.chat-hero-img {
+    border-radius: 2px;
+    flex-shrink: 0;
+    height: 27px;
+    object-fit: cover;
+    width: 48px;
+}
+
+.advanced-stats-table th[data-sortable]::after {
+    color: var(--text-muted);
+    content: ' ↕';
+    font-size: 10px;
+}
+
+.stats-bar-line {
+    align-items: center;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 48px 1fr;
+}
+
+.stats-bar-line i {
+    background: var(--dire-red);
+    border-radius: var(--radius-pill);
+    display: block;
+    height: 8px;
+}
+
+.stats-bar-line.farm i {
+    background: var(--gold);
 }

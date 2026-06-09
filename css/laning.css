@@ -1,369 +1,364 @@
 /* =========================================================
-   Лейнинг — единая система дизайна (локальные токены)
+   Лейнинг — общая система дизайна проекта
+   Использует токены из root.css и компоненты из overview.css
    ========================================================= */
-.laning-layout {
-    --ln-radiant: var(--radiant-green, #2ecc71);
-    --ln-dire: var(--dire-red, #e74c3c);
-    --ln-gold: var(--gold, #f1c40f);
-    --ln-gap: 14px;
-    --ln-radius: 12px;
-    --ln-radius-sm: 8px;
-    --ln-pad: 16px;
-    --ln-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
-    --ln-shadow-hover: 0 8px 26px rgba(0, 0, 0, 0.34);
 
-    display: flex;
-    flex-direction: column;
-    gap: var(--ln-gap);
-    max-width: 1320px;
-    margin: 0 auto;
-    padding: var(--ln-pad);
-}
-
-/* ===== Шапка раздела ===== */
-.ln-hero-panel {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    padding: 20px 22px;
-    border-radius: var(--ln-radius);
-    background:
-        radial-gradient(120% 160% at 0% 0%, rgba(46, 204, 113, 0.08), transparent 55%),
-        radial-gradient(120% 160% at 100% 0%, rgba(231, 76, 60, 0.08), transparent 55%),
-        var(--bg-container);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--ln-shadow);
-}
-
-.ln-h1 {
-    margin: 0 0 6px;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 0.2px;
-    color: var(--text-main);
-}
-
-.ln-sub {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-muted);
-    max-width: 680px;
-}
-
-.ln-score {
-    display: flex;
+/* ===== Шапка раздела (счёт) ===== */
+.laning-score {
     align-items: stretch;
+    background-color: rgba(0, 0, 0, 0.16);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    display: flex;
     gap: 16px;
+    margin-bottom: 18px;
+    padding: 14px 18px;
 }
 
-.ln-score-item {
-    display: flex;
-    flex-direction: column;
+.laning-score-item {
     align-items: center;
-    gap: 2px;
-    min-width: 92px;
-}
-
-.ln-score-num {
-    font-size: 34px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.ln-score-item.radiant .ln-score-num { color: var(--ln-radiant); }
-.ln-score-item.dire .ln-score-num { color: var(--ln-dire); }
-
-.ln-score-cap {
+    color: var(--text-muted);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     font-size: 11px;
-    color: var(--text-muted);
-    text-transform: uppercase;
+    gap: 4px;
     letter-spacing: 0.5px;
-}
-
-.ln-score-sep {
-    width: 1px;
-    background: var(--border-color);
-}
-
-/* ===== Общий контроль ===== */
-.ln-control {
-    padding: 14px 18px;
-    border-radius: var(--ln-radius);
-    background: var(--bg-container);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--ln-shadow);
-}
-
-.ln-control-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.ln-control-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-main);
-}
-
-.ln-control-vals { font-size: 13px; color: var(--text-muted); }
-.ln-control-vals .r { color: var(--ln-radiant); }
-.ln-control-vals .d { color: var(--ln-dire); }
-
-.ln-meter {
-    display: flex;
-    height: 14px;
-    border-radius: 999px;
-    overflow: hidden;
-    background: var(--bg-table);
-    border: 1px solid var(--border-color);
-}
-
-.ln-meter-fill { transition: width 0.45s ease; }
-.ln-meter-fill.radiant { background: linear-gradient(90deg, rgba(46, 204, 113, 0.7), var(--ln-radiant)); }
-.ln-meter-fill.dire { background: linear-gradient(90deg, var(--ln-dire), rgba(231, 76, 60, 0.7)); }
-
-/* ===== Карточка линии ===== */
-.ln-lane {
-    border-radius: var(--ln-radius);
-    background: var(--bg-table);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--ln-shadow);
-    overflow: hidden;
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.ln-lane:hover { box-shadow: var(--ln-shadow-hover); transform: translateY(-1px); }
-.ln-lane.radiant { border-top: 3px solid var(--ln-radiant); }
-.ln-lane.dire { border-top: 3px solid var(--ln-dire); }
-.ln-lane.draw { border-top: 3px solid #8a94a6; }
-
-.ln-lane-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 18px;
-    background: var(--bg-header);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.ln-lane-name { font-size: 15px; font-weight: 700; color: var(--text-main); }
-
-.ln-verdict {
-    font-size: 12px;
-    font-weight: 700;
-    padding: 5px 12px;
-    border-radius: 999px;
-}
-
-.ln-verdict.radiant { color: var(--ln-radiant); background: rgba(46, 204, 113, 0.14); }
-.ln-verdict.dire { color: var(--ln-dire); background: rgba(231, 76, 60, 0.14); }
-.ln-verdict.draw { color: var(--text-muted); background: rgba(138, 148, 166, 0.16); }
-
-.ln-lane-meter { display: flex; height: 6px; background: var(--bg-main); }
-.ln-lane-meter-fill.radiant { background: var(--ln-radiant); }
-.ln-lane-meter-fill.dire { background: var(--ln-dire); }
-
-/* ===== Колонки команд ===== */
-.ln-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--border-color);
-}
-
-.ln-col {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    background: var(--bg-table);
-}
-
-.ln-col.radiant { background: linear-gradient(180deg, rgba(46, 204, 113, 0.04), transparent 120px), var(--bg-table); }
-.ln-col.dire { background: linear-gradient(180deg, rgba(231, 76, 60, 0.04), transparent 120px), var(--bg-table); }
-
-.ln-col-head {
-    font-size: 12px;
-    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
-.ln-col-head.radiant { color: var(--ln-radiant); }
-.ln-col-head.dire { color: var(--ln-dire); }
+.laning-score-num {
+    color: var(--text-main);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: none;
+}
 
-.ln-empty {
-    padding: 18px;
-    text-align: center;
+.laning-score-item.radiant .laning-score-num {
+    color: var(--radiant-green);
+}
+
+.laning-score-item.dire .laning-score-num {
+    color: var(--dire-red);
+}
+
+/* ===== Контроль линий (бар) ===== */
+.laning-control {
+    background-color: rgba(0, 0, 0, 0.16);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 18px;
+    padding: 12px 14px;
+}
+
+.laning-control-head {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.laning-control-title {
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.laning-control-vals {
+    color: var(--text-muted);
     font-size: 12px;
-    font-style: italic;
+}
+
+.laning-control-vals .r {
+    color: var(--radiant-green);
+    font-weight: bold;
+}
+
+.laning-control-vals .d {
+    color: var(--dire-red);
+    font-weight: bold;
+}
+
+.laning-bar {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-pill);
+    display: flex;
+    height: 10px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.laning-bar-seg {
+    display: block;
+    height: 100%;
+    transition: width var(--transition-base);
+}
+
+.laning-bar-seg.radiant {
+    background-color: var(--radiant-green);
+}
+
+.laning-bar-seg.dire {
+    background-color: var(--dire-red);
+}
+
+/* ===== Бейдж вердикта (перекрывает winner-label) ===== */
+.laning-verdict {
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    text-transform: uppercase;
+}
+
+.laning-verdict.radiant {
+    color: var(--radiant-green);
+}
+
+.laning-verdict.dire {
+    color: var(--dire-red);
+}
+
+.laning-verdict.draw {
     color: var(--text-muted);
 }
 
-/* ===== Карточка игрока ===== */
-.ln-player {
+/* ===== Сравнение к 10-й минуте ===== */
+.laning-vs-heading {
+    margin-bottom: 10px;
+}
+
+.laning-vs {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 4px;
+}
+
+.laning-vs-card {
+    background: rgba(0, 0, 0, 0.16);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 12px;
-    border-radius: var(--ln-radius-sm);
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.ln-player-top {
-    display: grid;
-    grid-template-columns: 50px 1fr auto;
+.laning-vs-card.radiant {
+    border-color: rgba(46, 204, 113, 0.28);
+}
+
+.laning-vs-card.dire {
+    border-color: rgba(231, 76, 60, 0.28);
+}
+
+.laning-vs-card-head {
     align-items: center;
-    gap: 12px;
-}
-
-.ln-player .hero-img {
-    width: 50px;
-    height: 28px;
-    object-fit: cover;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.4);
-}
-
-.ln-player-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-
-.ln-player .player-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-main);
-    text-decoration: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.ln-player .player-name:hover { color: var(--blue-link); text-decoration: underline; }
-.ln-player-sub { font-size: 11px; color: var(--text-muted); }
-
-.ln-adv {
-    font-size: 13px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-
-.ln-adv.positive { color: var(--ln-radiant); background: rgba(46, 204, 113, 0.14); }
-.ln-adv.negative { color: var(--ln-dire); background: rgba(231, 76, 60, 0.14); }
-.ln-adv.neutral { color: var(--text-muted); background: rgba(138, 148, 166, 0.14); }
-
-/* ===== Метрики игрока ===== */
-.ln-metrics {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
     gap: 8px;
+    justify-content: space-between;
+    padding-bottom: 8px;
 }
 
-.ln-metric {
+.laning-vs-title {
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.laning-vs-leader {
+    border: 1px solid currentColor;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    white-space: nowrap;
+}
+
+.laning-vs-leader.radiant {
+    color: var(--radiant-green);
+}
+
+.laning-vs-leader.dire {
+    color: var(--dire-red);
+}
+
+.laning-vs-leader.draw {
+    color: var(--text-muted);
+}
+
+.laning-vs-side {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 8px 10px;
-    border-radius: var(--ln-radius-sm);
-    background: var(--bg-main);
-    border: 1px solid var(--border-color);
+    gap: 5px;
 }
 
-.ln-metric b { font-size: 18px; font-weight: 800; color: var(--text-main); line-height: 1; }
-.ln-metric span { font-size: 11px; color: var(--text-muted); }
-
-/* ===== Сравнение линии (диаграммы) ===== */
-.ln-vs {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px 18px;
-    border-top: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.ln-vs-title { font-size: 13px; font-weight: 700; color: var(--text-main); }
-
-.ln-vs-row { display: flex; flex-direction: column; gap: 6px; }
-
-.ln-vs-top {
+.laning-vs-side-head {
+    align-items: baseline;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
 }
 
-.ln-vs-top .r { color: var(--ln-radiant); font-weight: 800; }
-.ln-vs-top .d { color: var(--ln-dire); font-weight: 800; }
-.ln-vs-name { font-size: 12px; color: var(--text-muted); font-weight: 600; }
-.ln-vs-name.radiant { color: var(--ln-radiant); }
-.ln-vs-name.dire { color: var(--ln-dire); }
+.laning-vs-team {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
 
-.ln-vs-track {
-    display: flex;
-    height: 10px;
-    border-radius: 999px;
+.laning-vs-side.radiant .laning-vs-team,
+.laning-vs-side.radiant .laning-vs-value {
+    color: var(--radiant-green);
+}
+
+.laning-vs-side.dire .laning-vs-team,
+.laning-vs-side.dire .laning-vs-value {
+    color: var(--dire-red);
+}
+
+.laning-vs-value {
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.laning-vs-track {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-pill);
+    height: 8px;
     overflow: hidden;
-    background: var(--bg-main);
-    border: 1px solid var(--border-color);
+    width: 100%;
 }
 
-.ln-vs-fill { transition: width 0.4s ease; }
-.ln-vs-fill.r { background: var(--ln-radiant); }
-.ln-vs-fill.d { background: var(--ln-dire); }
+.laning-vs-fill {
+    border-radius: var(--radius-pill);
+    display: block;
+    height: 100%;
+    transition: width var(--transition-base);
+}
+
+.laning-vs-fill.r {
+    background-color: var(--radiant-green);
+}
+
+.laning-vs-fill.d {
+    background-color: var(--dire-red);
+}
 
 /* ===== График перевеса по золоту ===== */
-.ln-chart {
-    padding: 16px 18px 18px;
-    border-top: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.14);
+.laning-chart-wrap {
+    background-color: rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-top: 18px;
+    padding: 14px 14px 12px;
+    position: relative;
 }
 
-.ln-chart-cap { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
+.laning-chart-cap {
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
 
-.ln-diff-wrap { position: relative; }
+.laning-chart {
+    display: block;
+    height: 180px;
+    width: 100%;
+}
 
-.ln-diff { display: block; width: 100%; height: 180px; }
-
-.ln-diff-tag {
-    position: absolute;
-    left: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.4);
+.laning-chart-tag {
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
     pointer-events: none;
+    position: absolute;
+    text-transform: uppercase;
 }
 
-.ln-diff-tag.top { top: 8px; color: var(--ln-radiant); }
-.ln-diff-tag.bottom { bottom: 8px; color: var(--ln-dire); }
+.laning-chart-tag.top {
+    color: var(--radiant-green);
+    left: 14px;
+    top: 38px;
+}
 
-.ln-chart-axis {
+.laning-chart-tag.bottom {
+    bottom: 24px;
+    color: var(--dire-red);
+    left: 14px;
+}
+
+.laning-chart-axis {
+    color: var(--text-muted);
     display: flex;
+    font-size: 11px;
     justify-content: space-between;
     margin-top: 6px;
+}
+
+/* ===== Подпись игрока в таблице ===== */
+.laning-player-sub {
+    color: var(--text-muted);
     font-size: 11px;
+    margin-top: 2px;
+}
+
+/* ===== Процент преимущества ===== */
+.laning-adv {
+    font-weight: bold;
+}
+
+.laning-adv.positive {
+    color: var(--radiant-green);
+}
+
+.laning-adv.negative {
+    color: var(--dire-red);
+}
+
+.laning-adv.neutral {
     color: var(--text-muted);
 }
 
 /* ===== Адаптив ===== */
+@media (max-width: 980px) {
+    .laning-vs {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 860px) {
-    .ln-cols { grid-template-columns: 1fr; }
-    .ln-hero-panel { flex-direction: column; align-items: flex-start; }
+    .laning-score {
+        padding: 12px 14px;
+    }
+}
+
+@media (max-width: 720px) {
+    .laning-score-num {
+        font-size: 20px;
+    }
 }
 
 @media (max-width: 480px) {
-    .laning-layout { padding: 12px; }
-    .ln-player-top { grid-template-columns: 44px 1fr auto; }
-    .ln-metric b { font-size: 16px; }
+    .laning-chart {
+        height: 150px;
+    }
+
+    .laning-vs-card-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

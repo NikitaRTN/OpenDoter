@@ -1,0 +1,213 @@
+/* OpenDoter — главная страница, шапка и вход */
+
+.home-hero {
+  position: relative;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(52, 152, 219, 0.18), transparent 55%),
+    linear-gradient(135deg, #1b2530 0%, #141b22 60%, #11161c 100%);
+}
+.home-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(70% 140% at 100% 0%, rgba(46, 204, 113, 0.10), transparent 60%);
+}
+.home-mini-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #141b22;
+  padding: 14px 16px;
+}
+.home-mini-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a96a3;
+}
+.home-mini-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* Чип аккаунта в шапке */
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #252f3a;
+  border-radius: 999px;
+  background: #171f25;
+  padding: 4px 12px 4px 4px;
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.account-chip:hover {
+  border-color: #3498db;
+  background: #1c242d;
+}
+.account-chip-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #0f1417;
+  color: #8a96a3;
+  font-size: 10px;
+  overflow: hidden;
+}
+.account-chip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
+.account-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d6d9dc;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-logout {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #8a96a3;
+  text-decoration: none;
+  padding: 6px 10px;
+  border: 1px solid #252f3a;
+  border-radius: 8px;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.account-logout:hover {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+/* Модалка входа */
+.od-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.od-modal[hidden] { display: none; }
+.od-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+}
+.od-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid #252f3a;
+  border-radius: 14px;
+  background: #171f25;
+  padding: 20px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
+}
+.od-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.od-modal-x {
+  background: none;
+  border: none;
+  color: #8a96a3;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.od-modal-x:hover { color: #d6d9dc; }
+
+[data-od-clear-recent] {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #8a96a3;
+  padding: 4px 6px;
+}
+[data-od-clear-recent]:hover {
+  background: rgba(231, 76, 60, 0.10);
+  color: #e74c3c;
+}
+
+/* Карточки недавно просмотренного */
+.recent-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #252f3a;
+  border-radius: 10px;
+  background: #141b22;
+  padding: 10px 12px;
+  text-decoration: none;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.recent-card:hover {
+  transform: translateY(-2px);
+  border-color: #3498db;
+  background: #1a232b;
+}
+.recent-card-strip {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+.recent-card-strip.is-radiant { background: #2ecc71; }
+.recent-card-strip.is-dire { background: #e74c3c; }
+.recent-card-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.recent-card-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f1417;
+  color: #8a96a3;
+  font-weight: 700;
+}
+.recent-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.recent-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d6d9dc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-card-meta {
+  font-size: 11px;
+  color: #8a96a3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-card-arrow {
+  color: #8a96a3;
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+.recent-card:hover .recent-card-arrow { color: #3498db; }

@@ -47,7 +47,7 @@ function render_overview_table_head(): void
             <th class="col-center stat-column" title="Урон по вражеским постройкам (Tower Damage)">Пстр</th>
             <th class="col-center stat-column" title="Лечение союзных героев (Hero Healing)">Леч</th>
             <th title="Предметы в инвентаре игрока">Предметы</th>
-            <th class="col-center effects-column" title="Наличие Aghanim Scepter (S) и Aghanim Shard (D)">Эффекты</th>
+            <th class="col-center effects-column" title="Наличие Aghanim Scepter и Aghanim Shard">Эффекты</th>
         </tr>
     </thead>
     <?php
@@ -90,12 +90,32 @@ function render_player_rows(array $players, array $heroes, array $items_by_id): 
             <td class="col-center" title="Точное значение: <?php echo e(number_format($stats['hero_healing'])); ?>"><?php echo e(format_stat($stats['hero_healing'])); ?></td>
             <td><?php render_items_cell($player, $items_by_id); ?></td>
             <td class="col-center">
-                <span class="buff-icon <?php echo !empty($player['aghanims_scepter']) ? 'active' : ''; ?>" title="Aghanim Scepter (<?php echo !empty($player['aghanims_scepter']) ? 'Активен' : 'Отсутствует'; ?>)">S</span>
-                <span class="buff-icon <?php echo !empty($player['aghanims_shard']) ? 'active' : ''; ?>" title="Aghanim Shard (<?php echo !empty($player['aghanims_shard']) ? 'Активен' : 'Отсутствует'; ?>)">D</span>
+                <?php render_overview_aghanim_effect_icon(108, !empty($player['aghanims_scepter']), 'Aghanim Scepter', $items_by_id); ?>
+                <?php render_overview_aghanim_effect_icon(609, !empty($player['aghanims_shard']), 'Aghanim Shard', $items_by_id); ?>
             </td>
         </tr>
         <?php
     }
+}
+
+
+function render_overview_aghanim_effect_icon(int $item_id, bool $active, string $fallback_title, array $items_by_id): void
+{
+    $img = get_item_img($item_id, $items_by_id);
+    $title = get_item_title($item_id, $items_by_id);
+    if ($title === 'Пустой слот' || str_starts_with($title, 'Неизвестный предмет')) {
+        $title = $fallback_title;
+    }
+    $state = $active ? 'Активен' : 'Отсутствует';
+    ?>
+    <span class="aghanim-effect <?php echo $active ? 'active' : 'inactive'; ?>" title="<?php echo e($title . ' — ' . $state); ?>">
+        <?php if ($img): ?>
+            <img src="<?php echo e($img); ?>" alt="<?php echo e($title); ?>">
+        <?php else: ?>
+            <span class="missing-item">?</span>
+        <?php endif; ?>
+    </span>
+    <?php
 }
 
 function render_items_cell(array $player, array $items_by_id): void

@@ -1,0 +1,322 @@
+/* =========================================================
+   Командные бои — карточный layout, единая таблица участников
+   Токены: root.css, компоненты: overview.css / laning.css
+   ========================================================= */
+
+/* Список карточек файтов */
+.teamfights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* Карточка одного файта */
+.teamfight-card {
+    background-color: var(--bg-table);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+    margin: 0;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Шапка карточки: время, длительность, победитель */
+.teamfight-card-head {
+    align-items: center;
+    background-color: var(--bg-container);
+    border-bottom: 1px solid var(--border-color);
+    border-left: 3px solid var(--text-muted);
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    max-width: 100%;
+    min-width: 0;
+    padding: 10px 14px;
+}
+
+.teamfight-card-head.radiant {
+    border-left-color: var(--radiant-green);
+}
+
+.teamfight-card-head.dire {
+    border-left-color: var(--dire-red);
+}
+
+.teamfight-card-head.draw {
+    border-left-color: var(--text-muted);
+}
+
+.teamfight-card-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.teamfight-time {
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.teamfight-meta {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+/* Плашка победителя (использует общий класс laning-verdict) */
+.teamfight-card-head .laning-verdict {
+    flex-shrink: 0;
+}
+
+/* Полоса сводных пар (radiant vs dire) */
+.teamfight-stats {
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.16);
+    border-bottom: 1px solid var(--border-color);
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 100%;
+    min-width: 0;
+    padding: 10px 14px;
+}
+
+.teamfight-stat-pair {
+    align-items: center;
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+    display: inline-flex;
+    font-size: 11px;
+    gap: 6px;
+    max-width: 100%;
+    min-width: 0;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
+
+.teamfight-stat-pair .label {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.teamfight-stat-pair .v {
+    font-weight: 700;
+}
+
+.teamfight-stat-pair .v.r {
+    color: var(--radiant-green);
+}
+
+.teamfight-stat-pair .v.d {
+    color: var(--dire-red);
+}
+
+.teamfight-stat-pair .vs {
+    color: var(--text-muted);
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+/* Тело карточки — обёртка для горизонтального скролла */
+.teamfight-body {
+    background-color: var(--bg-table);
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+/* Единая таблица участников файта */
+.teamfight-players {
+    border-collapse: collapse;
+    font-size: 12px;
+    max-width: 100%;
+    min-width: 100%;
+    table-layout: auto;
+    width: 100%;
+    word-break: break-word;
+}
+
+.teamfight-players thead th {
+    background-color: var(--bg-container);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: normal;
+    padding: 8px 10px;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.teamfight-players tbody td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 6px 10px;
+    vertical-align: middle;
+}
+
+.teamfight-players tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.teamfight-players tbody tr:hover td {
+    background-color: var(--bg-row-hover, #202a32);
+}
+
+.teamfight-players .col-team {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+    width: 70px;
+}
+
+.teamfight-players .col-team.radiant {
+    color: var(--radiant-green);
+}
+
+.teamfight-players .col-team.dire {
+    color: var(--dire-red);
+}
+
+.teamfight-players .col-center {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.teamfight-players .col-kda-deaths {
+    color: var(--dire-red);
+    font-weight: 700;
+}
+
+.teamfight-players .col-kda-deaths.zero {
+    color: var(--text-main);
+    font-weight: normal;
+}
+
+.teamfight-players .col-positive {
+    color: var(--radiant-green);
+}
+
+.teamfight-players .col-negative {
+    color: var(--dire-red);
+}
+
+/* Игрок внутри таблицы */
+.teamfight-player {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.teamfight-player .hero-img {
+    background-color: #111;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+    height: 27px;
+    width: 48px;
+}
+
+.teamfight-player-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.teamfight-player-info .name {
+    display: block;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.teamfight-player-info .hero {
+    color: var(--text-muted);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Чипы: способности / предметы / выкупы */
+.teamfight-chips {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11px;
+    gap: 4px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.teamfight-chip {
+    border-radius: 8px;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: 1px 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.teamfight-chip.ability {
+    background-color: rgba(241, 196, 15, 0.18);
+    color: var(--gold);
+}
+
+.teamfight-chip.item {
+    background-color: rgba(46, 204, 113, 0.18);
+    color: var(--radiant-green);
+}
+
+.teamfight-chip.buyback {
+    background-color: rgba(231, 76, 60, 0.18);
+    color: var(--dire-red);
+    flex-shrink: 0;
+}
+
+/* Адаптив */
+@media (max-width: 720px) {
+    .teamfight-card-head {
+        padding: 8px 12px;
+    }
+    .teamfight-time {
+        font-size: 13px;
+    }
+    .teamfight-stats {
+        padding: 8px 12px;
+    }
+    .teamfight-stat-pair {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .teamfight-card-head {
+        gap: 6px;
+    }
+    .teamfight-stats {
+        gap: 6px;
+    }
+}

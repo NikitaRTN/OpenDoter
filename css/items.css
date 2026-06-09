@@ -74,3 +74,31 @@
     color: var(--text-muted);
     font-style: italic;
 }
+
+.aghanim-effect {
+    background-color: #101418;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    display: inline-flex;
+    height: 26px;
+    margin: 0 2px;
+    overflow: hidden;
+    vertical-align: middle;
+    width: 36px;
+}
+
+.aghanim-effect img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.aghanim-effect.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(241, 196, 15, 0.25);
+}
+
+.aghanim-effect.inactive img {
+    filter: grayscale(1);
+    opacity: 0.34;
+}

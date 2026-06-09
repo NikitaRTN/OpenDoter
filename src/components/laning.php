@@ -15,54 +15,57 @@ function render_laning_page(
     ?>
     <?php render_detailed_stats_gate($match_id, 'статистики лейнинга', $has_data); ?>
     <div data-stats-content <?php echo $has_data ? '' : 'hidden'; ?>>
-        <section class="laning-layout" data-laning-root>
-            <div class="ln-hero-panel">
-                <div class="ln-hero-text">
-                    <h2 class="ln-h1">Лейнинг — первые 10 минут</h2>
-                    <p class="ln-sub">Кто и насколько уверенно выиграл свою линию. Все цифры — на 10-й минуте: добитые крипы, денаи, золото и опыт в минуту.</p>
-                </div>
-                <div class="ln-score">
-                    <div class="ln-score-item radiant">
-                        <span class="ln-score-num"><?php echo e((string) $won['radiant']); ?></span>
-                        <span class="ln-score-cap">линий у Света</span>
-                    </div>
-                    <div class="ln-score-sep"></div>
-                    <div class="ln-score-item dire">
-                        <span class="ln-score-num"><?php echo e((string) $won['dire']); ?></span>
-                        <span class="ln-score-cap">линий у Тьмы</span>
-                    </div>
-                </div>
-            </div>
+        <?php render_match_tab_section(
+            'Лейнинг',
+            'первые 10 минут — кто и насколько уверенно выиграл свою линию',
+            static function () use ($won, $control): void {
+                render_laning_summary($won, $control);
+            }
+        ); ?>
 
-            <div class="ln-control">
-                <div class="ln-control-head">
-                    <span class="ln-control-title">Общий контроль линий</span>
-                    <span class="ln-control-vals"><b class="r"><?php echo e((string) $control['radiant']); ?>%</b> Свет · <b class="d"><?php echo e((string) $control['dire']); ?>%</b> Тьма</span>
-                </div>
-                <div class="ln-meter">
-                    <div class="ln-meter-fill radiant" style="width: <?php echo e((string) $control['radiant']); ?>%"></div>
-                    <div class="ln-meter-fill dire" style="width: <?php echo e((string) $control['dire']); ?>%"></div>
-                </div>
-            </div>
+        <?php foreach ($laning['lanes'] as $lane): ?>
+            <?php render_laning_lane_section($lane, $heroes); ?>
+        <?php endforeach; ?>
 
-            <?php foreach ($laning['lanes'] as $lane): ?>
-                <?php render_laning_lane_card($lane); ?>
-            <?php endforeach; ?>
-
-            <?php render_laning_jungle_group($laning['jungle']); ?>
-        </section>
+        <?php render_laning_jungle_section($laning['jungle'], $heroes); ?>
     </div>
     <?php
 }
 
-function render_laning_lane_card(array $lane): void
+function render_laning_summary(array $won, array $control): void
 {
+    ?>
+    <div class="laning-score">
+        <div class="laning-score-item radiant">
+            <span class="laning-score-num"><?php echo e((string) $won['radiant']); ?></span>
+            <span>линий у Света</span>
+        </div>
+        <div class="laning-score-item dire">
+            <span class="laning-score-num"><?php echo e((string) $won['dire']); ?></span>
+            <span>линий у Тьмы</span>
+        </div>
+    </div>
+
+    <div class="laning-control">
+        <div class="laning-control-head">
+            <span class="laning-control-title">Общий контроль линий</span>
+            <span class="laning-control-vals"><b class="r"><?php echo e((string) $control['radiant']); ?>%</b> Свет · <b class="d"><?php echo e((string) $control['dire']); ?>%</b> Тьма</span>
+        </div>
+        <div class="laning-bar">
+            <div class="laning-bar-seg radiant" style="width: <?php echo e((string) $control['radiant']); ?>%"></div>
+            <div class="laning-bar-seg dire" style="width: <?php echo e((string) $control['dire']); ?>%"></div>
+        </div>
+    </div>
+    <?php
+}
+
+function render_laning_lane_section(array $lane, array $heroes): void
+{
+    $r = $lane['radiant'];
+    $d = $lane['dire'];
     $r_pct = (int) round((float) ($lane['radiant_pct'] ?? 50));
     $r_pct = max(0, min(100, $r_pct));
     $d_pct = 100 - $r_pct;
-
-    $r = $lane['radiant'];
-    $d = $lane['dire'];
 
     $sum = static function (array $players, string $key): int {
         $t = 0;
@@ -84,55 +87,79 @@ function render_laning_lane_card(array $lane): void
         laning_side_series($d, 'gold_series')
     );
     ?>
-    <div class="ln-lane <?php echo e($lane['winner']); ?>">
-        <div class="ln-lane-head">
-            <span class="ln-lane-name"><?php echo e($lane['name']); ?></span>
-            <span class="ln-verdict <?php echo e($lane['winner']); ?>"><?php echo e($lane['winner_label']); ?></span>
-        </div>
-
-        <div class="ln-lane-meter" title="Контроль этой линии">
-            <div class="ln-lane-meter-fill radiant" style="width: <?php echo e((string) $r_pct); ?>%"></div>
-            <div class="ln-lane-meter-fill dire" style="width: <?php echo e((string) $d_pct); ?>%"></div>
-        </div>
-
-        <div class="ln-cols">
-            <div class="ln-col radiant">
-                <div class="ln-col-head radiant">Свет</div>
-                <?php if (empty($r)): ?>
-                    <div class="ln-empty">Нет данных</div>
-                <?php else: foreach ($r as $p): render_laning_player($p); endforeach; endif; ?>
+    <section class="mb-5 rounded-lg border border-line bg-panel p-4">
+        <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
+            <div>
+                <span class="text-base font-bold uppercase tracking-wide text-main"><?php echo e($lane['name']); ?></span>
+                <span class="text-muted"> - первые 10 минут</span>
             </div>
-            <div class="ln-col dire">
-                <div class="ln-col-head dire">Тьма</div>
-                <?php if (empty($d)): ?>
-                    <div class="ln-empty">Нет данных</div>
-                <?php else: foreach ($d as $p): render_laning_player($p); endforeach; endif; ?>
+            <span class="laning-verdict <?php echo e($lane['winner']); ?>"><?php echo e($lane['winner_label']); ?></span>
+        </div>
+
+        <div class="laning-control">
+            <div class="laning-control-head">
+                <span class="laning-control-title">Контроль линии</span>
+                <span class="laning-control-vals"><b class="r"><?php echo e((string) $r_pct); ?>%</b> Свет · <b class="d"><?php echo e((string) $d_pct); ?>%</b> Тьма</span>
+            </div>
+            <div class="laning-bar">
+                <div class="laning-bar-seg radiant" style="width: <?php echo e((string) $r_pct); ?>%"></div>
+                <div class="laning-bar-seg dire" style="width: <?php echo e((string) $d_pct); ?>%"></div>
             </div>
         </div>
 
-        <div class="ln-vs">
-            <div class="ln-vs-title">Сравнение линии к 10-й минуте</div>
+        <?php if (empty($r) && empty($d)): ?>
+            <div class="empty-state">Нет данных по этой линии.</div>
+        <?php else: ?>
+            <table class="overview-table">
+                <thead>
+                    <tr>
+                        <th>Игрок</th>
+                        <th class="col-center">Команда</th>
+                        <th class="col-center">Ур.</th>
+                        <th class="col-center">У / С</th>
+                        <th class="col-center">LH10</th>
+                        <th class="col-center">Денаи10</th>
+                        <th class="col-center">GPM10</th>
+                        <th class="col-center">XPM10</th>
+                        <th class="col-center" title="Насколько игрок сильнее или слабее среднего по линии">Adv%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($r as $p): ?>
+                        <?php render_laning_player_row($p, 'radiant', $heroes); ?>
+                    <?php endforeach; ?>
+                    <?php foreach ($d as $p): ?>
+                        <?php render_laning_player_row($p, 'dire', $heroes); ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+
+        <div class="team-header laning-vs-heading" style="margin-top: 18px;">
+            <div>
+                <span class="team-title">Сравнение к 10-й минуте</span>
+            </div>
+        </div>
+        <div class="laning-vs">
             <?php render_laning_vs_bar('Добито крипов', $r_lh, $d_lh, 'Суммарно добитых крипов командой к 10-й минуте'); ?>
             <?php render_laning_vs_bar('Золото', $r_gold, $d_gold, 'Суммарное золото команды к 10-й минуте'); ?>
             <?php render_laning_vs_bar('Опыт', $r_xp, $d_xp, 'Суммарный опыт команды к 10-й минуте'); ?>
         </div>
 
         <?php if ($chart !== ''): ?>
-        <div class="ln-chart">
-            <div class="ln-chart-cap">Перевес по золоту по ходу линии</div>
-            <div class="ln-diff-wrap">
-                <span class="ln-diff-tag top">▲ Свет впереди</span>
+            <div class="laning-chart-wrap">
+                <div class="laning-chart-cap">Перевес по золоту по ходу линии</div>
+                <span class="laning-chart-tag top">▲ Свет впереди</span>
                 <?php echo $chart; ?>
-                <span class="ln-diff-tag bottom">▼ Тьма впереди</span>
+                <span class="laning-chart-tag bottom">▼ Тьма впереди</span>
+                <div class="laning-chart-axis"><span>0 мин</span><span>5 мин</span><span>10 мин</span></div>
             </div>
-            <div class="ln-chart-axis"><span>0 мин</span><span>5 мин</span><span>10 мин</span></div>
-        </div>
         <?php endif; ?>
-    </div>
+    </section>
     <?php
 }
 
-function render_laning_jungle_group(array $jungle): void
+function render_laning_jungle_section(array $jungle, array $heroes): void
 {
     $r = $jungle['radiant'] ?? [];
     $d = $jungle['dire'] ?? [];
@@ -140,85 +167,194 @@ function render_laning_jungle_group(array $jungle): void
         return;
     }
     ?>
-    <div class="ln-lane draw">
-        <div class="ln-lane-head">
-            <span class="ln-lane-name">Лес и роуминг</span>
-            <span class="ln-verdict draw">Вне линий</span>
-        </div>
-        <div class="ln-cols">
-            <div class="ln-col radiant">
-                <div class="ln-col-head radiant">Свет</div>
-                <?php if (empty($r)): ?>
-                    <div class="ln-empty">Никто не ушёл в лес</div>
-                <?php else: foreach ($r as $p): render_laning_player($p); endforeach; endif; ?>
-            </div>
-            <div class="ln-col dire">
-                <div class="ln-col-head dire">Тьма</div>
-                <?php if (empty($d)): ?>
-                    <div class="ln-empty">Никто не ушёл в лес</div>
-                <?php else: foreach ($d as $p): render_laning_player($p); endforeach; endif; ?>
+    <section class="mb-5 rounded-lg border border-line bg-panel p-4">
+        <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
+            <div>
+                <span class="text-base font-bold uppercase tracking-wide text-main">Лес и роуминг</span>
+                <span class="text-muted"> - вне стандартных линий</span>
             </div>
         </div>
-    </div>
+        <table class="overview-table">
+            <thead>
+                <tr>
+                    <th>Игрок</th>
+                    <th class="col-center">Команда</th>
+                    <th class="col-center">Ур.</th>
+                    <th class="col-center">У / С</th>
+                    <th class="col-center">LH10</th>
+                    <th class="col-center">Денаи10</th>
+                    <th class="col-center">GPM10</th>
+                    <th class="col-center">XPM10</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($r as $p): ?>
+                    <?php render_laning_player_row($p, 'radiant', $heroes); ?>
+                <?php endforeach; ?>
+                <?php foreach ($d as $p): ?>
+                    <?php render_laning_player_row($p, 'dire', $heroes); ?>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </section>
     <?php
 }
 
-function render_laning_player(array $p): void
+function render_laning_player_row(array $p, string $team, array $heroes): void
 {
-    $adv = (int) $p['advantage'];
+    $is_radiant = $team === 'radiant';
+    $adv = (int) ($p['advantage'] ?? 0);
     $adv_class = $adv > 0 ? 'positive' : ($adv < 0 ? 'negative' : 'neutral');
+    $hero_id = (int) ($p['hero_id'] ?? 0);
     ?>
-    <div class="ln-player">
-        <div class="ln-player-top">
-            <?php if ($p['hero_img']): ?>
-                <img class="hero-img" src="<?php echo e($p['hero_img']); ?>" alt="">
-            <?php endif; ?>
-            <div class="ln-player-id">
-                <?php if (!empty($p['account_id'])): ?>
-                    <a class="player-name" href="<?php echo e(player_url($p['account_id'])); ?>"><?php echo e($p['name']); ?></a>
+    <tr>
+        <td>
+            <div class="player-cell">
+                <?php if (!empty($p['hero_img'])): ?>
+                    <img class="hero-img" src="<?php echo e($p['hero_img']); ?>" alt="">
                 <?php else: ?>
-                    <span class="player-name"><?php echo e($p['name']); ?></span>
+                    <span class="missing-asset">Нет героя</span>
                 <?php endif; ?>
-                <span class="ln-player-sub">Ур. <?php echo e((string) $p['level']); ?> · Убийства <?php echo e((string) $p['kills']); ?> · Смерти <?php echo e((string) $p['deaths']); ?></span>
+                <div class="player-info">
+                    <?php if (!empty($p['account_id'])): ?>
+                        <a class="player-name" href="<?php echo e(player_url($p['account_id'])); ?>"><?php echo e($p['name']); ?></a>
+                    <?php else: ?>
+                        <span class="player-name"><?php echo e($p['name']); ?></span>
+                    <?php endif; ?>
+                    <span class="laning-player-sub"><?php echo e(get_hero_name($hero_id, $heroes)); ?></span>
+                </div>
             </div>
-            <?php if ($adv !== 0): ?>
-                <span class="ln-adv <?php echo e($adv_class); ?>" title="Насколько игрок сильнее или слабее среднего по линии"><?php echo $adv > 0 ? '+' : ''; ?><?php echo e((string) $adv); ?>%</span>
-            <?php endif; ?>
-        </div>
-
-        <div class="ln-metrics">
-            <div class="ln-metric" title="Добитые вражеские крипы к 10-й минуте"><b><?php echo e((string) ($p['lh10'] ?? 0)); ?></b><span>Добито крипов</span></div>
-            <div class="ln-metric" title="Добитые свои крипы (денаи) к 10-й минуте"><b><?php echo e((string) ($p['dn10'] ?? 0)); ?></b><span>Денаи</span></div>
-            <div class="ln-metric" title="Золото в минуту к 10-й минуте"><b><?php echo e((string) ($p['gpm10'] ?? 0)); ?></b><span>Золото/мин</span></div>
-            <div class="ln-metric" title="Опыт в минуту к 10-й минуте"><b><?php echo e((string) ($p['xpm10'] ?? 0)); ?></b><span>Опыт/мин</span></div>
-        </div>
-    </div>
+        </td>
+        <td class="col-center <?php echo $is_radiant ? 'radiant-title' : 'dire-title'; ?>"><?php echo $is_radiant ? 'Свет' : 'Тьма'; ?></td>
+        <td class="col-center"><?php echo e((string) ($p['level'] ?? 0)); ?></td>
+        <td class="col-center" title="Убийства / смерти за первые 10 минут матча"><?php
+            $kills = $p['kills'] ?? null;
+            $deaths = $p['deaths'] ?? null;
+            if ($kills === null || $deaths === null) {
+                echo '—';
+            } else {
+                echo e((string) $kills) . ' / ' . e((string) $deaths);
+            }
+        ?></td>
+        <td class="col-center"><?php echo e((string) ($p['lh10'] ?? 0)); ?></td>
+        <td class="col-center"><?php echo e((string) ($p['dn10'] ?? 0)); ?></td>
+        <td class="col-center"><?php echo e((string) ($p['gpm10'] ?? 0)); ?></td>
+        <td class="col-center"><?php echo e((string) ($p['xpm10'] ?? 0)); ?></td>
+        <td class="col-center laning-adv <?php echo e($adv_class); ?>" title="Насколько игрок сильнее или слабее среднего по линии">
+            <?php
+            if ($adv === 0) {
+                echo '—';
+            } else {
+                echo ($adv > 0 ? '+' : '') . e((string) $adv) . '%';
+            }
+            ?>
+        </td>
+    </tr>
     <?php
 }
 
 function render_laning_vs_bar(string $label, int $r, int $d, string $hint): void
 {
-    $total = $r + $d;
-    $r_pct = $total > 0 ? round($r / $total * 100, 1) : 50;
-    $d_pct = 100 - $r_pct;
+    $max_value = max(1, $r, $d);
+    $r_pct = round($r / $max_value * 100, 1);
+    $d_pct = round($d / $max_value * 100, 1);
     $lead = $r === $d ? 'draw' : ($r > $d ? 'radiant' : 'dire');
     ?>
-    <div class="ln-vs-row" title="<?php echo e($hint); ?>">
-        <div class="ln-vs-top">
-            <b class="r"><?php echo e(number_format($r, 0, '', ' ')); ?></b>
-            <span class="ln-vs-name <?php echo e($lead); ?>"><?php echo e($label); ?></span>
-            <b class="d"><?php echo e(number_format($d, 0, '', ' ')); ?></b>
+    <div class="laning-vs-card <?php echo e($lead); ?>" title="<?php echo e($hint); ?>">
+        <div class="laning-vs-card-head">
+            <span class="laning-vs-title"><?php echo e($label); ?></span>
+            <span class="laning-vs-leader <?php echo e($lead); ?>">
+                <?php echo $lead === 'draw' ? 'Ровно' : ($lead === 'radiant' ? 'Свет впереди' : 'Тьма впереди'); ?>
+            </span>
         </div>
-        <div class="ln-vs-track">
-            <div class="ln-vs-fill r" style="width: <?php echo e((string) $r_pct); ?>%"></div>
-            <div class="ln-vs-fill d" style="width: <?php echo e((string) $d_pct); ?>%"></div>
+
+        <div class="laning-vs-side radiant">
+            <div class="laning-vs-side-head">
+                <span class="laning-vs-team">Свет</span>
+                <b class="laning-vs-value"><?php echo e(number_format($r, 0, '', ' ')); ?></b>
+            </div>
+            <div class="laning-vs-track" aria-label="<?php echo e($label); ?>, Свет">
+                <div class="laning-vs-fill r" style="width: <?php echo e((string) $r_pct); ?>%"></div>
+            </div>
+        </div>
+
+        <div class="laning-vs-side dire">
+            <div class="laning-vs-side-head">
+                <span class="laning-vs-team">Тьма</span>
+                <b class="laning-vs-value"><?php echo e(number_format($d, 0, '', ' ')); ?></b>
+            </div>
+            <div class="laning-vs-track" aria-label="<?php echo e($label); ?>, Тьма">
+                <div class="laning-vs-fill d" style="width: <?php echo e((string) $d_pct); ?>%"></div>
+            </div>
         </div>
     </div>
     <?php
 }
 
-function build_laning_analysis(array $radiant_players, array $dire_players, array $heroes): array
+function build_laning_analysis(array &$radiant_players, array &$dire_players, array $heroes): array
 {
+    // The local parser does not emit a per-player deaths_log, but every kill
+    // is recorded in the killer's kills_log as { time, key: <victim hero> }.
+    // Synthesize a deaths_log for each player by counting how many times the
+    // opposing team killed them so the laning summary can show real K/D over
+    // the first 10 minutes.
+    //
+    // The arrays are passed by reference because PHP array_merge would create
+    // a new array and any mutations there would not be visible to the original
+    // callers used by summarize_laning_player below.
+    $build_deaths_log = static function (array &$players, array $all_players, array $heroes): void {
+        // Build hero_name -> player_slot map for the current side.
+        $hero_to_player = [];
+        foreach ($all_players as $player) {
+            if (!is_array($player)) {
+                continue;
+            }
+            $hero_id = (int) ($player['hero_id'] ?? 0);
+            if ($hero_id > 0 && isset($heroes[$hero_id]['name'])) {
+                $hero_to_player[(string) $heroes[$hero_id]['name']] = (int) ($player['player_slot'] ?? 0);
+            }
+        }
+
+        // For every kill on the opposing side check if the victim is on this
+        // side, and if so append a death event to that player's deaths_log.
+        foreach ($all_players as $killer) {
+            if (!is_array($killer) || !is_array($killer['kills_log'] ?? null)) {
+                continue;
+            }
+            foreach ($killer['kills_log'] as $event) {
+                if (!is_array($event)) {
+                    continue;
+                }
+                $time = (int) ($event['time'] ?? 0);
+                $victim = (string) ($event['key'] ?? '');
+                if ($victim === '' || $time < 0 || $time > 600) {
+                    continue;
+                }
+                $victim_slot = $hero_to_player[$victim] ?? null;
+                if ($victim_slot === null) {
+                    continue;
+                }
+                foreach ($players as &$target) {
+                    if (!is_array($target)) {
+                        continue;
+                    }
+                    if ((int) ($target['player_slot'] ?? 0) === $victim_slot) {
+                        if (!isset($target['deaths_log']) || !is_array($target['deaths_log'])) {
+                            $target['deaths_log'] = [];
+                        }
+                        $target['deaths_log'][] = ['time' => $time];
+                        break;
+                    }
+                }
+                unset($target);
+            }
+        }
+    };
+
+    $all_players = array_merge($radiant_players, $dire_players);
+    $build_deaths_log($radiant_players, $all_players, $heroes);
+    $build_deaths_log($dire_players, $all_players, $heroes);
+
     $by_lane = [
         'top' => ['radiant' => [], 'dire' => []],
         'mid' => ['radiant' => [], 'dire' => []],
@@ -501,13 +637,28 @@ function summarize_laning_player(array $player, string $team, array $heroes): ar
     $gold_10 = timeseries_value_at_minute($gold_t, 10, (int) ($player['total_gold'] ?? 0));
     $xp_10 = timeseries_value_at_minute($xp_t, 10, 0);
 
-    $kills = count_events_before($player['kills_log'] ?? [], 600);
-    $deaths = count_events_before($player['deaths_log'] ?? [], 600);
+    // Kills/deaths during the laning phase (first 10 minutes) are only
+    // available in the parsed replay. We check if parsed data is present
+    // (like lh_t or kills_log). If it is, an empty log just means 0 events.
+    $is_parsed = array_key_exists('lh_t', $player) || array_key_exists('kills_log', $player);
+
+    $kills = null;
+    $deaths = null;
+    
+    if ($is_parsed) {
+        $kills_log = is_array($player['kills_log'] ?? null) ? $player['kills_log'] : [];
+        $deaths_log = is_array($player['deaths_log'] ?? null) ? $player['deaths_log'] : [];
+        $kills = count_events_before($kills_log, 600);
+        $deaths = count_events_before($deaths_log, 600);
+    }
+
+    $has_laning_kda = $kills !== null && $deaths !== null;
 
     return [
         'name' => (string) ($player['personaname'] ?? $player['name'] ?? 'Аноним'),
         'account_id' => (int) ($player['account_id'] ?? 0),
         'player_slot' => (int) ($player['player_slot'] ?? 999),
+        'hero_id' => (int) ($player['hero_id'] ?? 0),
         'hero_img' => get_hero_img((int) ($player['hero_id'] ?? 0), $heroes),
         'team' => $team,
         'cs' => $last_hits_10 + $denies_10,
@@ -520,6 +671,7 @@ function summarize_laning_player(array $player, string $team, array $heroes): ar
         'level' => xp_to_level($xp_10),
         'kills' => $kills,
         'deaths' => $deaths,
+        'kda_partial' => $has_laning_kda,
         'gold_series' => laning_series_slice($gold_t, 11),
         'advantage' => 0,
     ];
@@ -705,7 +857,7 @@ function laning_gold_diff_chart(array $r, array $d): string
     $lastX = $padX + $innerW;
     $lastY = $mid - $halfH * ($final / $maxAbs);
 
-    $svg  = '<svg class="ln-diff" viewBox="0 0 ' . $w . ' ' . $h . '" preserveAspectRatio="none" role="img" aria-hidden="true">';
+    $svg  = '<svg class="laning-chart" viewBox="0 0 ' . $w . ' ' . $h . '" preserveAspectRatio="none" role="img" aria-hidden="true">';
     $svg .= '<rect x="' . $padX . '" y="' . $padY . '" width="' . $innerW . '" height="' . $halfH . '" fill="rgba(46,204,113,0.10)"/>';
     $svg .= '<rect x="' . $padX . '" y="' . $mid . '" width="' . $innerW . '" height="' . $halfH . '" fill="rgba(231,76,60,0.10)"/>';
     $svg .= '<line x1="' . $padX . '" y1="' . $mid . '" x2="' . ($w - $padX) . '" y2="' . $mid . '" stroke="rgba(255,255,255,0.28)" stroke-width="1" stroke-dasharray="4 4"/>';

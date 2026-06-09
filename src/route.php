@@ -14,6 +14,17 @@ function resolve_route(array $config): array
         return ['type' => 'home'];
     }
 
+    if ($path === '/login') {
+        return [
+            'type' => 'login',
+            'account' => trim((string) ($_GET['account'] ?? '')),
+        ];
+    }
+
+    if ($path === '/logout') {
+        return ['type' => 'logout'];
+    }
+
     if ($path === '/api/parse') {
         return ['type' => 'api_parse'];
     }

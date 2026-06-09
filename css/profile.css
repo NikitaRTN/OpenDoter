@@ -1,0 +1,279 @@
+/* OpenDoter — подробный профиль игрока */
+
+.profile-banner {
+  position: relative;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(52, 152, 219, 0.16), transparent 55%),
+    linear-gradient(135deg, #1b2530 0%, #141b22 60%, #11161c 100%);
+}
+
+.profile-banner-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 120% at 100% 0%, rgba(241, 196, 15, 0.10), transparent 60%);
+}
+
+/* Медаль ранга с наложенными звёздами */
+.rank-medal {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rank-medal-sm { width: 64px; height: 64px; }
+.rank-medal-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+.rank-medal-stars {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96%;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Карточки статистики */
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid #252f3a;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(28, 36, 45, 0.9), rgba(20, 27, 34, 0.9));
+  padding: 14px 16px;
+}
+.stat-card-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a96a3;
+}
+.stat-card-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-card-sub {
+  font-size: 11px;
+  color: #8a96a3;
+}
+
+/* Полоса винрейта */
+.winrate-bar {
+  position: relative;
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.winrate-bar > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+.winrate-bar > span.wr-bad {
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+.winrate-bar > span.wr-good {
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+/* Карточки героев */
+.hero-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #252f3a;
+  border-radius: 10px;
+  background: #141b22;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.hero-card:hover {
+  transform: translateY(-2px);
+  border-color: #3498db;
+}
+.hero-card-img {
+  width: 100%;
+  height: 74px;
+  object-fit: cover;
+}
+.hero-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.hero-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d6d9dc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-card-meta {
+  font-size: 11px;
+  color: #8a96a3;
+}
+
+/* Полоска результата в таблице матчей */
+.result-strip {
+  display: inline-block;
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+
+/* Переключатель Turbo в профиле */
+.turbo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid #252f3a;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 5px 10px 5px 6px;
+  color: #8a96a3;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.turbo-toggle:hover {
+  border-color: #3498db;
+  color: #d6d9dc;
+  background: rgba(52, 152, 219, 0.08);
+}
+.turbo-toggle.is-on {
+  border-color: rgba(241, 196, 15, 0.55);
+  color: #f1c40f;
+  background: rgba(241, 196, 15, 0.10);
+}
+.turbo-toggle-track {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.turbo-toggle-thumb {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #8a96a3;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+.turbo-toggle.is-on .turbo-toggle-thumb {
+  transform: translateX(18px);
+  background: #f1c40f;
+}
+.turbo-toggle-state {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.turbo-badge {
+  display: inline-block;
+  margin-left: 6px;
+  border: 1px solid rgba(241, 196, 15, 0.45);
+  border-radius: 999px;
+  background: rgba(241, 196, 15, 0.10);
+  padding: 2px 6px;
+  color: #f1c40f;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Пагинация истории матчей */
+.profile-page-btn,
+.profile-page-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid #252f3a;
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.profile-page-btn {
+  color: #3498db;
+  background: rgba(52, 152, 219, 0.08);
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.profile-page-btn:hover {
+  border-color: #3498db;
+  background: rgba(52, 152, 219, 0.16);
+  color: #5dade2;
+}
+.profile-page-btn.is-disabled {
+  cursor: not-allowed;
+  color: #56616d;
+  background: rgba(255, 255, 255, 0.03);
+}
+.profile-page-current {
+  color: #d6d9dc;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+
+/* Текущий MMR и оценка OpenDota */
+.mmr-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 150px;
+  margin-top: 4px;
+}
+.mmr-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #252f3a;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #8a96a3;
+}
+.mmr-line strong {
+  color: #d6d9dc;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mmr-current strong {
+  color: #2ecc71;
+}
+.mmr-estimate strong {
+  color: #f1c40f;
+}

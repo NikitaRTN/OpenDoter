@@ -68,6 +68,24 @@ function match_has_benchmarks(array $players): bool
     return false;
 }
 
+function render_benchmark_legend(): void
+{
+    $items = [
+        'is-elite' => '80-100% отличный',
+        'is-good' => '60-79% хороший',
+        'is-average' => '40-59% средний',
+        'is-poor' => '20-39% ниже среднего',
+        'is-low' => '0-19% слабый',
+    ];
+    ?>
+    <div class="benchmark-legend" aria-label="Градация перцентилей">
+        <?php foreach ($items as $class => $label): ?>
+            <span class="benchmark-legend-item <?php echo e($class); ?>"><?php echo e($label); ?></span>
+        <?php endforeach; ?>
+    </div>
+    <?php
+}
+
 function render_benchmark_player_head(array $player, array $heroes): void
 {
     $hero_img = get_hero_img((int) ($player['hero_id'] ?? 0), $heroes);
@@ -82,8 +100,53 @@ function render_benchmark_player_head(array $player, array $heroes): void
                 <?php else: ?>
                     <span class="player-name"><?php echo e($name); ?></span>
                 <?php endif; ?>
-                <span class="player-rank"><?php echo e(get_hero_name((int) ($player['hero_id'] ?? 0), $heroes)); ?> · <?php echo e(player_match_team_label($player)); ?></span>
+                <span class="player-rank"><?php echo e(get_hero_name((int) ($player['hero_id'] ?? 0), $heroes)); ?></span>
             </div>
+        </div>
+    </div>
+    <?php
+}
+
+function render_benchmarks_team_group(string $team_label, array $players, array $heroes, array $metrics): void
+{
+    if ($players === []) {
+        return;
+    }
+
+    $team_class = player_match_team_class($players[0]);
+    ?>
+    <div class="benchmarks-team <?php echo e($team_class); ?>">
+        <div class="benchmarks-team-title <?php echo e($team_class); ?>"><?php echo e($team_label); ?></div>
+        <div class="benchmarks-grid">
+            <?php foreach ($players as $player): ?>
+                <?php $benchmarks = is_array($player['benchmarks'] ?? null) ? $player['benchmarks'] : []; ?>
+                <div class="benchmark-card">
+                    <?php render_benchmark_player_head($player, $heroes); ?>
+                    <div class="benchmark-metrics">
+                        <?php foreach ($metrics as $key => $label): ?>
+                            <?php
+                            $entry = is_array($benchmarks[$key] ?? null) ? $benchmarks[$key] : [];
+                            $has_value = array_key_exists('pct', $entry);
+                            $pct = $has_value ? max(0.0, min(1.0, (float) $entry['pct'])) : 0.0;
+                            $pct_width = (int) round($pct * 100);
+                            $pct_label = $has_value ? $pct_width . '%' : '—';
+                            $raw_label = $has_value ? benchmark_format_raw($key, $entry['raw'] ?? 0) : '';
+                            $pct_class = $has_value ? benchmark_percentile_class($pct) : 'is-empty';
+                            ?>
+                            <div class="benchmark-row <?php echo e($pct_class); ?>">
+                                <div class="benchmark-label"><?php echo e($label); ?></div>
+                                <div class="benchmark-bar" title="Перцентиль относительно базы героя: чем выше процент, тем лучше показатель">
+                                    <div class="benchmark-bar-fill <?php echo e($pct_class); ?>" style="width: <?php echo e((string) $pct_width); ?>%;"></div>
+                                </div>
+                                <div class="benchmark-value">
+                                    <span class="benchmark-pct"><?php echo e($pct_label); ?></span>
+                                    <?php if ($raw_label !== ''): ?><span class="benchmark-raw"><?php echo e($raw_label); ?></span><?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
     <?php
@@ -97,37 +160,18 @@ function render_benchmarks_match_tab(array $players, array $heroes): void
         return;
     }
 
+    $radiant = [];
+    $dire = [];
+    foreach ($players as $player) {
+        if (player_match_team_label($player) === 'Свет') {
+            $radiant[] = $player;
+        } else {
+            $dire[] = $player;
+        }
+    }
+
     $metrics = benchmark_metric_labels();
-    ?>
-    <div class="benchmarks-grid">
-        <?php foreach ($players as $player): ?>
-            <?php $benchmarks = is_array($player['benchmarks'] ?? null) ? $player['benchmarks'] : []; ?>
-            <div class="benchmark-card">
-                <?php render_benchmark_player_head($player, $heroes); ?>
-                <div class="benchmark-metrics">
-                    <?php foreach ($metrics as $key => $label): ?>
-                        <?php
-                        $entry = is_array($benchmarks[$key] ?? null) ? $benchmarks[$key] : [];
-                        $has_value = array_key_exists('pct', $entry);
-                        $pct = $has_value ? max(0.0, min(1.0, (float) $entry['pct'])) : 0.0;
-                        $pct_width = (int) round($pct * 100);
-                        $pct_label = $has_value ? $pct_width . '%' : '—';
-                        $raw_label = $has_value ? benchmark_format_raw($key, $entry['raw'] ?? 0) : '';
-                        ?>
-                        <div class="benchmark-row">
-                            <div class="benchmark-label"><?php echo e($label); ?></div>
-                            <div class="benchmark-bar" title="Перцентиль относительно базы героя">
-                                <div class="benchmark-bar-fill <?php echo e($has_value ? benchmark_percentile_class($pct) : 'is-empty'); ?>" style="width: <?php echo e((string) $pct_width); ?>%;"></div>
-                            </div>
-                            <div class="benchmark-value">
-                                <span class="benchmark-pct"><?php echo e($pct_label); ?></span>
-                                <?php if ($raw_label !== ''): ?><span class="benchmark-raw"><?php echo e($raw_label); ?></span><?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        <?php endforeach; ?>
-    </div>
-    <?php
+    render_benchmark_legend();
+    render_benchmarks_team_group('Свет', $radiant, $heroes, $metrics);
+    render_benchmarks_team_group('Тьма', $dire, $heroes, $metrics);
 }

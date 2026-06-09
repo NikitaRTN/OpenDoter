@@ -130,8 +130,12 @@ function render_hero_damage_matrix(string $team_label, array $row_players, array
     <?php
 }
 
-function render_building_damage_matrix(array $players, array $heroes): void
+function render_building_damage_matrix(string $team_label, array $players, array $heroes): void
 {
+    if ($players === []) {
+        return;
+    }
+
     $columns = damage_building_columns();
     $rows = [];
     $col_max = array_fill_keys($columns, 0);
@@ -154,35 +158,42 @@ function render_building_damage_matrix(array $players, array $heroes): void
     }
 
     usort($rows, static fn (array $a, array $b): int => $b['total'] <=> $a['total']);
+    $team_class = player_match_team_class($players[0]);
     ?>
-    <table class="overview-table damage-matrix">
-        <thead>
-            <tr>
-                <th class="player-column">Игрок</th>
-                <?php foreach ($columns as $column): ?><th class="col-center" title="<?php echo e(damage_building_title($column)); ?>"><?php echo e($column); ?></th><?php endforeach; ?>
-                <th class="col-center">Всего</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($rows as $row): ?>
-            <tr>
-                <?php render_player_match_cells($row['player'], $heroes); ?>
-                <?php foreach ($columns as $column): ?>
-                    <?php
-                    $value = (int) $row['agg'][$column];
-                    $column_max = max(1, (int) $col_max[$column]);
-                    $width = (int) round($value / $column_max * 100);
-                    ?>
-                    <td class="col-center dmg-cell" title="<?php echo e(number_format($value)); ?>">
-                        <span class="dmg-val"><?php echo e($value > 0 ? format_stat($value) : '-'); ?></span>
-                        <span class="dmg-bar"><span class="dmg-bar-fill tone-building" style="width: <?php echo e((string) $width); ?>%;"></span></span>
-                    </td>
-                <?php endforeach; ?>
-                <td class="col-center" title="<?php echo e(number_format($row['total'])); ?>"><strong><?php echo e($row['total'] > 0 ? format_stat($row['total']) : '-'); ?></strong></td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+    <div class="damage-team-block <?php echo e($team_class); ?>">
+        <div class="team-header damage-team-header">
+            <span class="team-title <?php echo e($team_class); ?>"><?php echo e($team_label); ?></span>
+            <span class="team-subtitle">урон этой команды по строениям и целям</span>
+        </div>
+        <table class="overview-table damage-matrix damage-building-table">
+            <thead>
+                <tr>
+                    <th class="player-column">Игрок</th>
+                    <?php foreach ($columns as $column): ?><th class="col-center" title="<?php echo e(damage_building_title($column)); ?>"><?php echo e($column); ?></th><?php endforeach; ?>
+                    <th class="col-center">Всего</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($rows as $row): ?>
+                <tr>
+                    <?php render_player_match_cells($row['player'], $heroes); ?>
+                    <?php foreach ($columns as $column): ?>
+                        <?php
+                        $value = (int) $row['agg'][$column];
+                        $column_max = max(1, (int) $col_max[$column]);
+                        $width = (int) round($value / $column_max * 100);
+                        ?>
+                        <td class="col-center dmg-cell" title="<?php echo e(number_format($value)); ?>">
+                            <span class="dmg-val"><?php echo e($value > 0 ? format_stat($value) : '-'); ?></span>
+                            <span class="dmg-bar"><span class="dmg-bar-fill tone-building" style="width: <?php echo e((string) $width); ?>%;"></span></span>
+                        </td>
+                    <?php endforeach; ?>
+                    <td class="col-center" title="<?php echo e(number_format($row['total'])); ?>"><strong><?php echo e($row['total'] > 0 ? format_stat($row['total']) : '-'); ?></strong></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
     <?php
 }
 
@@ -213,8 +224,9 @@ function render_damage_tab(array $radiant_players, array $dire_players, array $h
         render_hero_damage_matrix('Тьма', $dire_players, $radiant_players, $heroes, 'damage_taken', 'received');
     });
 
-    render_match_tab_section('Урон по строениям и целям', 'башни, казармы, Крепость и Рошан', static function () use ($players, $heroes): void {
-        render_building_damage_matrix($players, $heroes);
+    render_match_tab_section('Урон по строениям и целям', 'разделено по командам: башни, казармы, Крепость и Рошан', static function () use ($radiant_players, $dire_players, $heroes): void {
+        render_building_damage_matrix('Свет', $radiant_players, $heroes);
+        render_building_damage_matrix('Тьма', $dire_players, $heroes);
     });
 }
 

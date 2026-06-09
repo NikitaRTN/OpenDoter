@@ -83,7 +83,7 @@ function render_items_inventory_table(array $players, array $heroes, array $item
                 <td><?php render_item_icons_row($player, $items_by_id, ['item_0', 'item_1', 'item_2', 'item_3', 'item_4', 'item_5']); ?></td>
                 <td><?php render_item_icons_row($player, $items_by_id, ['backpack_0', 'backpack_1', 'backpack_2']); ?></td>
                 <td class="col-center"><?php render_single_item_icon((int) ($player['item_neutral'] ?? 0), $items_by_id); ?></td>
-                <td class="col-center"><?php render_aghanim_badges($player); ?></td>
+                <td class="col-center"><?php render_aghanim_badges($player, $items_by_id); ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>
@@ -115,11 +115,28 @@ function render_single_item_icon(int $item_id, array $items_by_id): void
     <?php
 }
 
-function render_aghanim_badges(array $player): void
+function render_aghanim_badges(array $player, array $items_by_id): void
 {
+    render_aghanim_effect_icon(108, !empty($player['aghanims_scepter']), 'Aghanim Scepter', $items_by_id);
+    render_aghanim_effect_icon(609, !empty($player['aghanims_shard']), 'Aghanim Shard', $items_by_id);
+}
+
+function render_aghanim_effect_icon(int $item_id, bool $active, string $fallback_title, array $items_by_id): void
+{
+    $img = get_item_img($item_id, $items_by_id);
+    $title = get_item_title($item_id, $items_by_id);
+    if ($title === 'Пустой слот' || str_starts_with($title, 'Неизвестный предмет')) {
+        $title = $fallback_title;
+    }
+    $state = $active ? 'Активен' : 'Отсутствует';
     ?>
-    <span class="buff-icon <?php echo !empty($player['aghanims_scepter']) ? 'active' : ''; ?>" title="Aghanim Scepter (<?php echo !empty($player['aghanims_scepter']) ? 'Активен' : 'Отсутствует'; ?>)">S</span>
-    <span class="buff-icon <?php echo !empty($player['aghanims_shard']) ? 'active' : ''; ?>" title="Aghanim Shard (<?php echo !empty($player['aghanims_shard']) ? 'Активен' : 'Отсутствует'; ?>)">D</span>
+    <span class="aghanim-effect <?php echo $active ? 'active' : 'inactive'; ?>" title="<?php echo e($title . ' — ' . $state); ?>">
+        <?php if ($img): ?>
+            <img src="<?php echo e($img); ?>" alt="<?php echo e($title); ?>">
+        <?php else: ?>
+            <span class="missing-item">?</span>
+        <?php endif; ?>
+    </span>
     <?php
 }
 

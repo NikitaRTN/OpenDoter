@@ -52,3 +52,44 @@
 .dmg-bar-fill.tone-building {
     background-color: var(--gold);
 }
+
+.damage-team-block {
+    border: 1px solid var(--border-color);
+    border-left-width: 4px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+
+.damage-team-block.radiant-title {
+    border-left-color: var(--radiant-green);
+}
+
+.damage-team-block.dire-title {
+    border-left-color: var(--dire-red);
+}
+
+.damage-team-header {
+    align-items: baseline;
+    background: rgba(0, 0, 0, 0.18);
+    display: flex;
+    gap: 10px;
+    margin: 0;
+    padding: 8px 10px;
+}
+
+.damage-team-header .team-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.damage-team-header .team-subtitle {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.damage-building-table {
+    margin: 0;
+}

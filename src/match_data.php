@@ -5,30 +5,48 @@ declare(strict_types=1);
 function load_match_context(array $config, ?string $requested_match_id = null): array
 {
     $api_base = rtrim((string) $config['api_base'], '/');
-    $public_api_base = rtrim((string) $config['public_api_base'], '/');
     $match_id = $requested_match_id ?: (string) $config['match_id'];
     $timeout = (float) $config['request_timeout'];
 
-    $match_response = fetch_first_required_json([
+    // Сначала пробуем полные распарсенные данные. Если их нет — берём
+    // лёгкую мета из OpenDota (через локальный API), чтобы отрендерить
+    // «главную» страницу с кнопкой обработки вместо 404.
+    $match_response = fetch_first_optional_json([
         "{$api_base}/api/match/{$match_id}?full=1",
-        "{$public_api_base}/matches/{$match_id}",
-    ], $timeout, 'Матч');
-    $heroes = fetch_first_required_json([
+        "{$api_base}/api/match/{$match_id}",
+    ], $timeout);
+    $parse_status = 'not_found';
+    if (!empty($match_response['match']) && is_array($match_response['match'])) {
+        $parse_status = 'parsed';
+    } else {
+        $meta = fetch_json("{$api_base}/api/match/{$match_id}/metadata", $timeout);
+        if ($meta['ok'] && is_array($meta['data']) && !empty($meta['data']['match_id'])) {
+            $match_response = ['match' => $meta['data'], 'parsed' => []];
+            $parse_status = 'metadata';
+        }
+    }
+
+    if ($parse_status === 'not_found') {
+        throw new RuntimeException("Матч {$match_id} не найден ни в локальном кэше, ни в OpenDota.");
+    }
+
+    $cache_ttl = (int) ($config['constants_cache_ttl'] ?? 21600);
+    $heroes = fetch_constants_cached('heroes', [
         "{$api_base}/constants/heroes.json",
-        "{$public_api_base}/constants/heroes",
-    ], $timeout, 'Герои');
-    $items = fetch_first_required_json([
+        "{$api_base}/constants/heroes",
+    ], $timeout, $cache_ttl, true, 'Герои');
+    $items = fetch_constants_cached('items', [
         "{$api_base}/constants/items.json",
-        "{$public_api_base}/constants/items",
-    ], $timeout, 'Предметы');
-    $abilities = fetch_first_optional_json([
+        "{$api_base}/constants/items",
+    ], $timeout, $cache_ttl, true, 'Предметы');
+    $abilities = fetch_constants_cached('abilities', [
         "{$api_base}/constants/abilities.json",
-        "{$public_api_base}/constants/abilities",
-    ], $timeout);
-    $ability_ids = fetch_first_optional_json([
+        "{$api_base}/constants/abilities",
+    ], $timeout, $cache_ttl, false);
+    $ability_ids = fetch_constants_cached('ability_ids', [
         "{$api_base}/constants/ability_ids.json",
-        "{$public_api_base}/constants/ability_ids",
-    ], $timeout);
+        "{$api_base}/constants/ability_ids",
+    ], $timeout, $cache_ttl, false);
 
     [$match, $parsed] = normalize_match_response($match_response);
     if ($match === []) {
@@ -43,11 +61,21 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
         $match['players'] = merge_parsed_player_data($match['players'], $parsed['players']);
     }
 
+    // Surface parsed-only top-level collections (teamfights, chat, objectives,
+    // pauses, cosmetics, draft_timings, gold/xp advantages) so views that
+    // depend on them can render real data instead of empty placeholders.
+    foreach (['teamfights', 'chat', 'objectives', 'pauses', 'cosmetics', 'draft_timings', 'radiant_gold_adv', 'radiant_xp_adv'] as $parsed_key) {
+        if (!empty($parsed[$parsed_key]) && is_array($parsed[$parsed_key]) && empty($match[$parsed_key])) {
+            $match[$parsed_key] = $parsed[$parsed_key];
+        }
+    }
+
     $items_by_id = normalize_items_by_id($items);
     [$radiant_players, $dire_players] = split_players_by_team($match['players']);
     $draft = build_draft($match['picks_bans'] ?? [], $heroes);
 
     return [
+        'parse_status' => $parse_status,
         'match_id' => $match_id,
         'match' => $match,
         'heroes' => $heroes,

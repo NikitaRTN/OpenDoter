@@ -20,6 +20,34 @@ require_once __DIR__ . '/src/core.php';
 try {
     $route = resolve_route($config);
 
+    if ($route['type'] === 'login') {
+        $account = resolve_account_input((string) ($route['account'] ?? ''));
+        $redirect = app_url();
+        if ($account !== null) {
+            setcookie('opendoter_uid', $account, [
+                'expires' => time() + 60 * 60 * 24 * 365,
+                'path' => '/',
+                'httponly' => false,
+                'samesite' => 'Lax',
+            ]);
+            $redirect = player_url($account);
+        }
+        header('Location: ' . $redirect);
+        http_response_code(302);
+        return;
+    }
+
+    if ($route['type'] === 'logout') {
+        setcookie('opendoter_uid', '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'samesite' => 'Lax',
+        ]);
+        header('Location: ' . app_url());
+        http_response_code(302);
+        return;
+    }
+
     if ($route['type'] === 'api_status') {
         $api_base = rtrim((string) $config['api_base'], '/');
         proxy_json_request($api_base . '/api/status/' . rawurlencode((string) $route['match_id']), 'GET', null, (float) $config['request_timeout']);
@@ -35,21 +63,17 @@ try {
 
     if ($route['type'] === 'home') {
         $page_title = 'OpenDoter';
+        $home_account_id = current_account_id();
+        $home_me = null;
+        if ($home_account_id !== null) {
+            try {
+                $home_me = load_player_context($config, $home_account_id);
+            } catch (Throwable $e) {
+                $home_me = null;
+            }
+        }
         require __DIR__ . '/src/header.php';
-        ?>
-        <section class="mb-5 rounded-lg border border-line bg-panel p-4">
-            <div class="mb-3 flex items-center justify-between border-b border-line pb-1.5">
-                <div>
-                    <span class="text-base font-bold uppercase tracking-wide text-main">OpenDoter</span>
-                    <span class="text-muted"> - поиск матчей и игроков</span>
-                </div>
-            </div>
-            <div class="flex flex-col gap-3 rounded-lg border border-line bg-black/15 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <span>Введите ник игрока или Match ID в поиск сверху.</span>
-                <a class="inline-block rounded border border-link bg-link/10 px-4 py-2 text-xs font-bold uppercase text-link transition-colors hover:bg-link/20 hover:text-link-hover" href="<?php echo e(app_url('search?q=dendi')); ?>">Пример поиска</a>
-            </div>
-        </section>
-        <?php
+        render_home_page($home_account_id, $home_me);
         require __DIR__ . '/src/footer.php';
         return;
     }
@@ -60,7 +84,12 @@ try {
         extract($page, EXTR_SKIP);
 
         require __DIR__ . '/src/header.php';
-        if ($current_tab === 'vision') {
+
+        if (($parse_status ?? 'parsed') === 'metadata') {
+            // Матч есть в OpenDota, но локально не распарсен — показываем
+            // «главную» страницу с кнопкой «Запросить обработку».
+            require __DIR__ . '/src/views/match_unparsed.php';
+        } elseif ($current_tab === 'vision') {
             require __DIR__ . '/src/views/vision.php';
         } elseif ($current_tab === 'overview') {
             require __DIR__ . '/src/views/overview.php';
@@ -81,11 +110,13 @@ try {
 
     if ($route['type'] === 'player') {
         $page_title = 'Профиль игрока';
-        $page = load_player_context($config, (string) $route['account_id']);
+        $matches_page = max(1, (int) ($_GET['page'] ?? 1));
+        $include_turbo = in_array(strtolower((string) ($_GET['turbo'] ?? '')), ['1', 'true', 'yes', 'on'], true);
+        $page = load_player_context($config, (string) $route['account_id'], $matches_page, $include_turbo);
         extract($page, EXTR_SKIP);
 
         require __DIR__ . '/src/header.php';
-        render_player_profile($player_profile, $player_matches, $heroes);
+        render_player_profile($player_profile, $player_matches, $heroes, $player_stats ?? []);
         require __DIR__ . '/src/footer.php';
         return;
     }

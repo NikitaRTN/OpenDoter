@@ -193,3 +193,49 @@ function fetch_first_optional_json(array $urls, float $timeout): array
 
     return [];
 }
+
+/**
+ * Локальный кэш редко меняющихся констант (heroes/items/abilities/...).
+ * Избавляет от HTTP-запроса + декодирования большого JSON на каждой загрузке страницы.
+ */
+function constants_cache_dir(): string
+{
+    return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opendoter_constants';
+}
+
+function fetch_constants_cached(string $cache_key, array $urls, float $timeout, int $ttl, bool $required, string $label = ''): array
+{
+    // In-process мемо: одинаковые константы не декодируются дважды за запрос.
+    static $memo = [];
+    if (isset($memo[$cache_key])) {
+        return $memo[$cache_key];
+    }
+
+    $file = constants_cache_dir() . DIRECTORY_SEPARATOR
+        . preg_replace('/[^a-z0-9_]+/i', '_', $cache_key) . '.json';
+
+    if ($ttl > 0 && is_file($file) && (time() - (int) filemtime($file)) < $ttl) {
+        $cached = json_decode((string) file_get_contents($file), true);
+        if (is_array($cached) && $cached !== []) {
+            return $memo[$cache_key] = $cached;
+        }
+    }
+
+    $data = $required
+        ? fetch_first_required_json($urls, $timeout, $label)
+        : fetch_first_optional_json($urls, $timeout);
+
+    if (is_array($data) && $data !== [] && $ttl > 0) {
+        $dir = constants_cache_dir();
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        @file_put_contents(
+            $file,
+            json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            LOCK_EX
+        );
+    }
+
+    return $memo[$cache_key] = $data;
+}

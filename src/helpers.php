@@ -183,3 +183,145 @@ function asset_url(string $path): string
 {
     return app_url($path);
 }
+
+
+/**
+ * Account id текущего «залогиненного» игрока (из cookie) или null.
+ * Полноценный Steam OpenID требует секретов и внешней сети, поэтому
+ * вход облегчён: пользователь указывает свой account id / Steam, мы храним его в cookie.
+ */
+function current_account_id(): ?string
+{
+    $raw = (string) ($_COOKIE['opendoter_uid'] ?? '');
+    return ctype_digit($raw) ? $raw : null;
+}
+
+function steamid64_to_account_id(string $steamid64): ?string
+{
+    if (!ctype_digit($steamid64) || strlen($steamid64) < 17) {
+        return null;
+    }
+    if (function_exists('bcsub')) {
+        $account = bcsub($steamid64, '76561197960265728');
+    } else {
+        $account = (string) (((int) $steamid64) - 76561197960265728);
+    }
+    return ctype_digit($account) && (int) $account > 0 ? $account : null;
+}
+
+/**
+ * Привести произвольный ввод (account id, Steam ID64 или ссылку на профиль)
+ * к Dota account_id. Возвращает null, если распознать не удалось.
+ */
+function resolve_account_input(string $input): ?string
+{
+    $input = trim($input);
+    if ($input === '') {
+        return null;
+    }
+    if (preg_match('#steamcommunity\.com/profiles/(\d{17,})#', $input, $m)) {
+        return steamid64_to_account_id($m[1]);
+    }
+    if (preg_match('#/players?/(\d+)#', $input, $m)) {
+        return $m[1];
+    }
+    if (ctype_digit($input) && strlen($input) >= 17) {
+        return steamid64_to_account_id($input);
+    }
+    if (ctype_digit($input)) {
+        return $input;
+    }
+    return null;
+}
+
+function rank_medal_parts(mixed $tier): array
+{
+    $tier = (int) $tier;
+    if ($tier <= 0) {
+        return ['major' => 0, 'stars' => 0];
+    }
+    return ['major' => intdiv($tier, 10), 'stars' => $tier % 10];
+}
+
+function rank_medal_img(int $major): string
+{
+    $major = max(0, min(8, $major));
+    return 'https://www.opendota.com/assets/images/dota2/rank_icons/rank_icon_' . $major . '.png';
+}
+
+function rank_star_img(int $stars): ?string
+{
+    if ($stars < 1 || $stars > 7) {
+        return null;
+    }
+    return 'https://www.opendota.com/assets/images/dota2/rank_icons/rank_star_' . $stars . '.png';
+}
+
+/**
+ * Примерный MMR-диапазон по медали Dota 2.
+ * Это не точный текущий MMR игрока, а публично выводимый диапазон ранга.
+ */
+function rank_tier_mmr_range(int $tier): ?array
+{
+    $major = intdiv($tier, 10);
+    $stars = $tier % 10;
+    if ($major <= 0) {
+        return null;
+    }
+
+    // Приблизительные шаги рангов: 5 звёзд по ~154 MMR.
+    $rank_bases = [
+        1 => 0,     // Рекрут / Herald
+        2 => 770,   // Страж / Guardian
+        3 => 1540,  // Рыцарь / Crusader
+        4 => 2310,  // Герой / Archon
+        5 => 3080,  // Легенда / Legend
+        6 => 3850,  // Властелин / Ancient
+        7 => 4620,  // Божество / Divine
+        8 => 5420,  // Титан / Immortal+
+    ];
+
+    if ($major >= 8) {
+        return ['min' => 5420, 'max' => null];
+    }
+    if (!isset($rank_bases[$major])) {
+        return null;
+    }
+
+    $star = max(1, min(5, $stars ?: 1));
+    $min = $rank_bases[$major] + (($star - 1) * 154);
+    $max = $rank_bases[$major] + ($star * 154) - 1;
+    return ['min' => $min, 'max' => $max];
+}
+
+function format_mmr_range(array $range): string
+{
+    if (($range['max'] ?? null) === null) {
+        return (string) $range['min'] . '+';
+    }
+    return $range['min'] . '–' . $range['max'];
+}
+
+function game_mode_name(int $mode): string
+{
+    $modes = [
+        0 => 'Неизвестно', 1 => 'All Pick', 2 => 'Captains Mode', 3 => 'Random Draft',
+        4 => 'Single Draft', 5 => 'All Random', 12 => 'Least Played', 16 => 'Captains Draft',
+        18 => 'Ability Draft', 22 => 'Ранговый All Pick', 23 => 'Турбо',
+    ];
+    return $modes[$mode] ?? ('Режим #' . $mode);
+}
+
+function lobby_type_name(int $lobby): string
+{
+    $lobbies = [
+        0 => 'Обычная', 1 => 'Практика', 5 => 'Командный', 6 => 'Турнир',
+        7 => 'Рейтинговая', 8 => '1в1 мид', 9 => 'Боты',
+    ];
+    return $lobbies[$lobby] ?? '';
+}
+
+function kda_ratio(int $kills, int $deaths, int $assists): float
+{
+    return round(($kills + $assists) / max(1, $deaths), 2);
+}
