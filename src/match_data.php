@@ -7,6 +7,13 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
     $api_base = rtrim((string) $config['api_base'], '/');
     $match_id = $requested_match_id ?: (string) $config['match_id'];
     $timeout = (float) $config['request_timeout'];
+    $cache_ttl = (int) ($config['match_context_cache_ttl'] ?? 0);
+    $cache_key = 'match_' . $match_id . '_v2';
+
+    $cached = app_cache_get('match_context', $cache_key, $cache_ttl);
+    if ($cached !== null) {
+        return $cached;
+    }
 
     // Сначала пробуем полные распарсенные данные. Если их нет — берём
     // лёгкую мета из OpenDota (через локальный API), чтобы отрендерить
@@ -30,23 +37,23 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
         throw new RuntimeException("Матч {$match_id} не найден ни в локальном кэше, ни в OpenDota.");
     }
 
-    $cache_ttl = (int) ($config['constants_cache_ttl'] ?? 21600);
+    $constants_cache_ttl = (int) ($config['constants_cache_ttl'] ?? 21600);
     $heroes = fetch_constants_cached('heroes', [
         "{$api_base}/constants/heroes.json",
         "{$api_base}/constants/heroes",
-    ], $timeout, $cache_ttl, true, 'Герои');
+    ], $timeout, $constants_cache_ttl, true, 'Герои');
     $items = fetch_constants_cached('items', [
         "{$api_base}/constants/items.json",
         "{$api_base}/constants/items",
-    ], $timeout, $cache_ttl, true, 'Предметы');
+    ], $timeout, $constants_cache_ttl, true, 'Предметы');
     $abilities = fetch_constants_cached('abilities', [
         "{$api_base}/constants/abilities.json",
         "{$api_base}/constants/abilities",
-    ], $timeout, $cache_ttl, false);
+    ], $timeout, $constants_cache_ttl, false);
     $ability_ids = fetch_constants_cached('ability_ids', [
         "{$api_base}/constants/ability_ids.json",
         "{$api_base}/constants/ability_ids",
-    ], $timeout, $cache_ttl, false);
+    ], $timeout, $constants_cache_ttl, false);
 
     [$match, $parsed] = normalize_match_response($match_response);
     if ($match === []) {
@@ -74,7 +81,7 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
     [$radiant_players, $dire_players] = split_players_by_team($match['players']);
     $draft = build_draft($match['picks_bans'] ?? [], $heroes);
 
-    return [
+    $context = [
         'parse_status' => $parse_status,
         'match_id' => $match_id,
         'match' => $match,
@@ -94,6 +101,12 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
         'match_duration' => isset($match['duration']) ? gmdate('i:s', (int) $match['duration']) : '-',
         'match_end_time' => isset($match['start_time']) ? date('d.m.Y H:i', (int) $match['start_time']) : '-',
     ];
+
+    if ($parse_status === 'parsed') {
+        app_cache_set('match_context', $cache_key, $context);
+    }
+
+    return $context;
 }
 
 function normalize_match_response(array $match_response): array

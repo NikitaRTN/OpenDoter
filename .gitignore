@@ -1,1 +1,4 @@
-﻿# parser-master is tracked as a Git submodule.
+﻿# Runtime/cache data
+cache/
+
+# API server is tracked as a Git submodule.

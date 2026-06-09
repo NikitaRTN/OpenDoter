@@ -15,6 +15,29 @@ if (PHP_SAPI === 'cli-server') {
     }
 }
 
+// Ultra-fast anonymous HTML cache for immutable match tabs.
+// This runs before loading the app core, so repeated public match views avoid
+// PHP component loading, API calls and JSON decoding completely.
+$request_uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+$request_path = parse_url($request_uri, PHP_URL_PATH) ?: '/';
+$request_query = parse_url($request_uri, PHP_URL_QUERY);
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && empty($_COOKIE['opendoter_uid'])
+    && ($request_query === null || $request_query === '')
+    && preg_match('#^/matches/(\d+)(?:/([a-z_]+))?$#', $request_path, $early_match)
+) {
+    $early_match_id = $early_match[1];
+    $early_tab = $early_match[2] ?? 'overview';
+    $early_cache_key = 'match_' . $early_match_id . '_' . $early_tab . '_anon_v2.cache';
+    $early_cache_file = __DIR__ . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'match_pages' . DIRECTORY_SEPARATOR . $early_cache_key;
+    if (is_file($early_cache_file) && (time() - (int) filemtime($early_cache_file)) < 86400) {
+        header('Content-Type: text/html; charset=utf-8');
+        header('X-OpenDoter-Cache: early-page-hit');
+        readfile($early_cache_file);
+        return;
+    }
+}
+
 require_once __DIR__ . '/src/core.php';
 
 try {
@@ -80,8 +103,30 @@ try {
 
     if ($route['type'] === 'match') {
         $current_tab = (string) $route['tab'];
-        $page = load_match_context($config, (string) $route['match_id']);
+        $match_id_for_cache = (string) $route['match_id'];
+        $page_cache_ttl = (int) ($config['match_page_cache_ttl'] ?? 0);
+        $can_use_page_cache = $page_cache_ttl > 0
+            && empty($_COOKIE['opendoter_uid'])
+            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+            && empty($_GET);
+        $page_cache_key = 'match_' . $match_id_for_cache . '_' . $current_tab . '_anon_v2';
+
+        if ($can_use_page_cache) {
+            $cached_html = app_cache_get_raw('match_pages', $page_cache_key, $page_cache_ttl);
+            if ($cached_html !== null) {
+                header('Content-Type: text/html; charset=utf-8');
+                header('X-OpenDoter-Cache: page-hit');
+                echo $cached_html;
+                return;
+            }
+        }
+
+        $page = load_match_context($config, $match_id_for_cache);
         extract($page, EXTR_SKIP);
+
+        if ($can_use_page_cache) {
+            ob_start();
+        }
 
         require __DIR__ . '/src/header.php';
 
@@ -105,6 +150,15 @@ try {
             ]);
         }
         require __DIR__ . '/src/footer.php';
+
+        if ($can_use_page_cache) {
+            $html = (string) ob_get_clean();
+            if (($parse_status ?? 'parsed') === 'parsed' && http_response_code() < 400) {
+                app_cache_set_raw('match_pages', $page_cache_key, $html);
+            }
+            header('X-OpenDoter-Cache: page-miss');
+            echo $html;
+        }
         return;
     }
 

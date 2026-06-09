@@ -6,6 +6,98 @@ const API_USER_AGENT = 'OpenDoter/1.0 (+https://github.com/NikitaRTN/OpenDoter)'
 const API_MAX_ATTEMPTS = 3;
 const API_RETRY_BASE_DELAY = 0.4;
 
+
+function app_cache_root(): string
+{
+    return dirname(__DIR__) . DIRECTORY_SEPARATOR . 'cache';
+}
+
+function app_cache_file(string $namespace, string $key): string
+{
+    $safe_namespace = preg_replace('/[^a-z0-9_-]+/i', '_', $namespace) ?: 'default';
+    $safe_key = preg_replace('/[^a-z0-9_.-]+/i', '_', $key) ?: sha1($key);
+    return app_cache_root() . DIRECTORY_SEPARATOR . $safe_namespace . DIRECTORY_SEPARATOR . $safe_key . '.cache';
+}
+
+
+function app_cache_get_raw(string $namespace, string $key, int $ttl): ?string
+{
+    if ($ttl <= 0) {
+        return null;
+    }
+
+    $file = app_cache_file($namespace, $key);
+    if (!is_file($file) || (time() - (int) filemtime($file)) >= $ttl) {
+        return null;
+    }
+
+    $data = @file_get_contents($file);
+    return $data === false ? null : $data;
+}
+
+function app_cache_set_raw(string $namespace, string $key, string $data): void
+{
+    $file = app_cache_file($namespace, $key);
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0777, true);
+    }
+
+    $tmp = $file . '.' . getmypid() . '.tmp';
+    if (@file_put_contents($tmp, $data, LOCK_EX) !== false) {
+        @rename($tmp, $file);
+    } else {
+        @unlink($tmp);
+    }
+}
+
+function app_cache_get(string $namespace, string $key, int $ttl): ?array
+{
+    if ($ttl <= 0) {
+        return null;
+    }
+
+    static $memo = [];
+    $memo_key = $namespace . ':' . $key;
+    if (array_key_exists($memo_key, $memo)) {
+        return $memo[$memo_key];
+    }
+
+    $file = app_cache_file($namespace, $key);
+    if (!is_file($file) || (time() - (int) filemtime($file)) >= $ttl) {
+        return $memo[$memo_key] = null;
+    }
+
+    $raw = @file_get_contents($file);
+    if ($raw === false || $raw === '') {
+        return $memo[$memo_key] = null;
+    }
+
+    $data = @unserialize($raw, ['allowed_classes' => false]);
+    if (!is_array($data)) {
+        @unlink($file);
+        return $memo[$memo_key] = null;
+    }
+
+    return $memo[$memo_key] = $data;
+}
+
+function app_cache_set(string $namespace, string $key, array $data): void
+{
+    $file = app_cache_file($namespace, $key);
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0777, true);
+    }
+
+    $tmp = $file . '.' . getmypid() . '.tmp';
+    if (@file_put_contents($tmp, serialize($data), LOCK_EX) !== false) {
+        @rename($tmp, $file);
+    } else {
+        @unlink($tmp);
+    }
+}
+
 function api_default_headers(?string $body = null): array
 {
     $headers = [

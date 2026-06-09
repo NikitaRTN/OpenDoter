@@ -10,18 +10,35 @@ function load_player_context(array $config, string $account_id, int $page = 1, b
     $per_page = 25;
     $offset = ($page - 1) * $per_page;
     $turbo_param = $include_turbo ? '&turbo=1' : '';
+    $cache_ttl = (int) ($config['player_context_cache_ttl'] ?? 0);
+    $cache_key = 'player_' . preg_replace('/\D+/', '', $account_id) . '_p' . $page . '_' . ($include_turbo ? 'turbo' : 'regular') . '_v1';
+
+    $cached = app_cache_get('player_context', $cache_key, $cache_ttl);
+    if ($cached !== null) {
+        return $cached;
+    }
 
     $profile = fetch_required_json("{$api_base}/api/players/{$account_id}", $timeout, 'Профиль игрока');
 
-    // История матчей теперь постраничная. Запрашиваем на 1 матч больше, чтобы понять, есть ли следующая страница.
-    $matches_page = fetch_required_json("{$api_base}/api/players/{$account_id}/matches?limit=" . ($per_page + 1) . "&offset={$offset}{$turbo_param}", $timeout, 'Матчи игрока');
-    $matches_page = is_array($matches_page) ? $matches_page : [];
-    $has_next_page = count($matches_page) > $per_page;
-    $matches = array_slice($matches_page, 0, $per_page);
+    if ($page === 1) {
+        // Первый экран и агрегаты используют один и тот же батч на 100 матчей.
+        // Раньше профиль делал два похожих запроса: 26 матчей для таблицы и 100
+        // для статистики. На холодном кэше это добавляло лишний поход в API/OpenDota.
+        $stats_matches = fetch_required_json("{$api_base}/api/players/{$account_id}/matches?limit=100&offset=0{$turbo_param}", $timeout, 'Матчи игрока');
+        $stats_matches = is_array($stats_matches) ? $stats_matches : [];
+        $matches = array_slice($stats_matches, 0, $per_page);
+        $has_next_page = count($stats_matches) > $per_page;
+    } else {
+        // История матчей постраничная. Запрашиваем на 1 матч больше, чтобы понять, есть ли следующая страница.
+        $matches_page = fetch_required_json("{$api_base}/api/players/{$account_id}/matches?limit=" . ($per_page + 1) . "&offset={$offset}{$turbo_param}", $timeout, 'Матчи игрока');
+        $matches_page = is_array($matches_page) ? $matches_page : [];
+        $has_next_page = count($matches_page) > $per_page;
+        $matches = array_slice($matches_page, 0, $per_page);
 
-    // Отдельная выборка для агрегированной статистики сверху, чтобы пагинация не меняла средние значения.
-    $stats_matches = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/matches?limit=100&offset=0{$turbo_param}"], $timeout);
-    $stats_matches = is_array($stats_matches) ? $stats_matches : $matches;
+        // Отдельная выборка для агрегированной статистики сверху, чтобы пагинация не меняла средние значения.
+        $stats_matches = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/matches?limit=100&offset=0{$turbo_param}"], $timeout);
+        $stats_matches = is_array($stats_matches) ? $stats_matches : $matches;
+    }
 
     $heroes = fetch_constants_cached('heroes', [
         "{$api_base}/constants/heroes.json",
@@ -38,13 +55,17 @@ function load_player_context(array $config, string $account_id, int $page = 1, b
     $stats['has_next_page'] = $has_next_page;
     $stats['include_turbo'] = $include_turbo;
 
-    return [
+    $context = [
         'account_id' => $account_id,
         'player_profile' => $profile,
         'player_matches' => $matches,
         'heroes' => $heroes,
         'player_stats' => $stats,
     ];
+
+    app_cache_set('player_context', $cache_key, $context);
+
+    return $context;
 }
 
 /**
