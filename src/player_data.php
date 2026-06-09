@@ -18,17 +18,29 @@ function load_player_context(array $config, string $account_id, int $page = 1, b
         return $cached;
     }
 
-    $profile = fetch_required_json("{$api_base}/api/players/{$account_id}", $timeout, 'Профиль игрока');
-
+    $page_data = [];
     if ($page === 1) {
-        // Первый экран и агрегаты используют один и тот же батч на 100 матчей.
-        // Раньше профиль делал два похожих запроса: 26 матчей для таблицы и 100
-        // для статистики. На холодном кэше это добавляло лишний поход в API/OpenDota.
-        $stats_matches = fetch_required_json("{$api_base}/api/players/{$account_id}/matches?limit=100&offset=0{$turbo_param}", $timeout, 'Матчи игрока');
-        $stats_matches = is_array($stats_matches) ? $stats_matches : [];
+        $page_data = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/page" . ($include_turbo ? '?turbo=1' : '')], $timeout);
+    }
+
+    if ($page === 1 && is_array($page_data) && isset($page_data['profile'], $page_data['matches'])) {
+        // Один агрегированный API-запрос вместо profile + matches + wl + heroes.
+        $profile = is_array($page_data['profile']) ? $page_data['profile'] : [];
+        $stats_matches = is_array($page_data['matches']) ? $page_data['matches'] : [];
         $matches = array_slice($stats_matches, 0, $per_page);
         $has_next_page = count($stats_matches) > $per_page;
+        $wl_raw = is_array($page_data['wl'] ?? null) ? $page_data['wl'] : [];
+        $heroes_raw = is_array($page_data['heroes'] ?? null) ? $page_data['heroes'] : [];
     } else {
+        $profile = fetch_required_json("{$api_base}/api/players/{$account_id}", $timeout, 'Профиль игрока');
+
+        if ($page === 1) {
+            // Первый экран и агрегаты используют один и тот же батч на 100 матчей.
+            $stats_matches = fetch_required_json("{$api_base}/api/players/{$account_id}/matches?limit=100&offset=0{$turbo_param}", $timeout, 'Матчи игрока');
+            $stats_matches = is_array($stats_matches) ? $stats_matches : [];
+            $matches = array_slice($stats_matches, 0, $per_page);
+            $has_next_page = count($stats_matches) > $per_page;
+        } else {
         // История матчей постраничная. Запрашиваем на 1 матч больше, чтобы понять, есть ли следующая страница.
         $matches_page = fetch_required_json("{$api_base}/api/players/{$account_id}/matches?limit=" . ($per_page + 1) . "&offset={$offset}{$turbo_param}", $timeout, 'Матчи игрока');
         $matches_page = is_array($matches_page) ? $matches_page : [];
@@ -38,16 +50,17 @@ function load_player_context(array $config, string $account_id, int $page = 1, b
         // Отдельная выборка для агрегированной статистики сверху, чтобы пагинация не меняла средние значения.
         $stats_matches = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/matches?limit=100&offset=0{$turbo_param}"], $timeout);
         $stats_matches = is_array($stats_matches) ? $stats_matches : $matches;
+        }
+
+        // При include_turbo=1 локальный API прокидывает significant=0, поэтому Turbo попадает в win/loss и heroes.
+        $wl_raw = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/wl" . ($include_turbo ? '?turbo=1' : '')], $timeout);
+        $heroes_raw = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/heroes" . ($include_turbo ? '?turbo=1' : '')], $timeout);
     }
 
     $heroes = fetch_constants_cached('heroes', [
         "{$api_base}/constants/heroes.json",
         "{$api_base}/constants/heroes",
     ], $timeout, (int) ($config['constants_cache_ttl'] ?? 21600), true, 'Герои');
-
-    // При include_turbo=1 локальный API прокидывает significant=0, поэтому Turbo попадает в win/loss и heroes.
-    $wl_raw = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/wl" . ($include_turbo ? '?turbo=1' : '')], $timeout);
-    $heroes_raw = fetch_first_optional_json(["{$api_base}/api/players/{$account_id}/heroes" . ($include_turbo ? '?turbo=1' : '')], $timeout);
 
     $stats = compute_player_stats($stats_matches, $heroes, $wl_raw, $heroes_raw);
     $stats['page'] = $page;
