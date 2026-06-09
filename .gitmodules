@@ -1,0 +1,3 @@
+[submodule "parser-master"]
+	path = parser-master
+	url = https://github.com/NikitaRTN/OpenDoter-API.git

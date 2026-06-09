@@ -12,6 +12,21 @@ index.php          # единая точка входа и роутинг
 src/               # логика: роутинг, API, хелперы, компоненты, шаблоны (views)
 css/               # стили
 assets/            # статика
+parser-master/     # API-сервер и парсер, подключён как приватный Git submodule
+```
+
+API-сервер вынесен в отдельный приватный репозиторий: https://github.com/NikitaRTN/OpenDoter-API
+
+Чтобы клонировать проект вместе с API-сервером, используй:
+
+```bash
+git clone --recurse-submodules https://github.com/NikitaRTN/OpenDoter.git
+```
+
+Если проект уже склонирован без submodule:
+
+```bash
+git submodule update --init --recursive
 ```
 
 Все маршруты обрабатываются в `src/route.php` и рендерятся из `index.php`:
