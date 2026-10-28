@@ -13,4 +13,14 @@ ob_start();render_player_profile(['profile'=>['account_id'=>123,'personaname'=>'
 if(strpos($html,'data-profile-workspace')===false||strpos($html,'data-profile-filters')===false)throw new RuntimeException('Interactive workspace missing');
 if(substr_count($html,'data-hero-name=')!==15)throw new RuntimeException('Not all heroes rendered');
 if(strpos($html,'data-match-breakdown')>strpos($html,'id="profile-heroes"'))throw new RuntimeException('Score details must stay by match history');
-echo "Profile PHP regressions PASS (5 checks)\n";
+if(strpos($html,'data-profile-skill')===false)throw new RuntimeException('Header site rating missing');
+if(strpos($html,'mmr-estimate')!==false)throw new RuntimeException('Legacy OpenDota MMR estimate visible');
+ob_start();render_player_profile(['profile'=>['account_id'=>123],'rank_tier'=>44,'computed_mmr'=>3982],[],[],[]);$rankHtml=ob_get_clean();
+if(strpos($rankHtml,'3982')!==false||strpos($rankHtml,'≈ ')===false)throw new RuntimeException('Estimated medal MMR must be explicit');
+ob_start();render_player_profile(['profile'=>['account_id'=>123],'competitive_rank'=>2345],[],[],[]);$mmrHtml=ob_get_clean();
+if(strpos($mmrHtml,'2345')===false)throw new RuntimeException('Published MMR missing');
+if(strpos($html,'Все + Turbo')!==false||strpos($html,'turbo-toggle')!==false)throw new RuntimeException('Redundant all-mode badges');
+$js=file_get_contents(__DIR__.'/../src/assets/profile-workspace.js');
+if(strpos($js,'<small>${m.impact.coverage}%')!==false||strpos($js,'покрытие метрик ${s.coverage}')!==false)throw new RuntimeException('Coverage noise returned');
+if(strpos($html,'profile-rating-rank')===false||strpos($html,'href="#impact-method" data-profile-skill')===false)throw new RuntimeException('Paired rating cards missing');
+echo "Profile PHP regressions PASS (12 checks)\n";

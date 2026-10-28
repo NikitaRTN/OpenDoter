@@ -30,3 +30,8 @@ Profile score is the mean of eligible match scores among the most recent 100 fil
 API: `python -m unittest discover -s tests` from parser-master. Tests cover score bounds, missing vs zero, short games, no win bonus, monotonicity, Turbo reference, lane-vs-role, filter zero values/validation, weighted rates and partial metric coverage.
 
 Browser QA at 1440/390: real profile 1112027560; pagination without document reload, back navigation, Turbo+result filters, 114 lifetime heroes, hero search/sort/click, score breakdown, no page overflow/JS errors, deterministic empty/stale source fixtures.
+
+## Profile header
+The header shows MMR (published when available; otherwise an explicitly approximate medal range) and OpenDoter rating / 1000. The legacy computed OpenDota MMR is not displayed. The header rating always uses the latest up to 100 matches across all modes, including Turbo; table filters do not change it. Filtered summary below remains filter-specific. Missing/unavailable ratings are not zero.
+
+Repeated metric-coverage percentages are omitted from the table and summary. Coverage remains available only in the user-opened match breakdown. The mode selector says "All modes"; Turbo remains included without redundant badges.

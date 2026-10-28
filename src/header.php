@@ -60,9 +60,9 @@ $is_match_page = isset($match_id, $match);
             },
         };
     </script>
-    <link rel="stylesheet" href="<?php echo e(asset_url('css/root.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset_url('css/root.css')); ?>?v=<?php echo filemtime(__DIR__.'/../css/root.css'); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/base.css')); ?>">
-    <link rel="stylesheet" href="<?php echo e(asset_url('css/overview.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset_url('css/overview.css')); ?>?v=<?php echo filemtime(__DIR__.'/../css/overview.css'); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/benchmarks.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/damage.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/vision.css')); ?>">
@@ -74,7 +74,7 @@ $is_match_page = isset($match_id, $match);
     <link rel="stylesheet" href="<?php echo e(asset_url('css/compare.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/teamfights.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/home.css')); ?>">
-    <link rel="stylesheet" href="<?php echo e(asset_url('css/profile.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset_url('css/profile.css')); ?>?v=<?php echo filemtime(__DIR__.'/../css/profile.css'); ?>">
     <?php if (($route['type'] ?? '') === 'player'): ?><link rel="stylesheet" href="<?php echo e(asset_url('css/profile-workspace.css')); ?>?v=<?php echo filemtime(__DIR__.'/../css/profile-workspace.css'); ?>"><?php endif; ?>
     <?php if (in_array($current_tab, ['damage', 'teamfights'], true)): ?>
     <link rel="stylesheet" href="<?php echo e(asset_url('css/match-insights.css')); ?>?v=<?php echo e((string) filemtime(__DIR__ . '/../css/match-insights.css')); ?>">

@@ -31,9 +31,35 @@
    page=Math.min(10000,Math.max(1,Number(q.get('page'))||1));
  }
  function notify(msg,error=false) {status.textContent=msg;status.classList.toggle('pw-error',error);}
- function cards(s) {
+ const skill = document.querySelector('[data-profile-skill]');
+  let baselinePromise = null;
+  function headerRating(data) {
+    if (!skill) return;
+    const s=data.summary, stale=Boolean(data.cache.stale);
+    skill.querySelector('[data-skill-value]').textContent=s.impact==null?'Нет оценки':`${fmt(s.impact)} / 1000`;
+    skill.querySelector('[data-skill-sample]').textContent=`${s.rated_games} оценённых из ${s.games} последних матчей · все режимы. ${stale?'Устаревший кэш. ':''}Не MMR; оценка статистического вклада.`;
+    skill.querySelector('[data-skill-sample]').title=skill.querySelector('[data-skill-sample]').textContent;
+    skill.querySelector('[data-skill-sample]').textContent=`${s.rated_games} матчей в оценке${stale?' · старый кэш':''}`;
+    skill.classList.toggle('is-stale',stale);
+  }
+  async function loadHeader(refresh=false) {
+    const url=new URL(base);url.searchParams.set('data','insights');if(refresh)url.searchParams.set('refresh','1');
+    try {
+      const res=await fetch(url,{headers:{Accept:'application/json'}}), data=await res.json();
+      if(!res.ok||!data.summary)throw Error('Rating unavailable');
+      headerRating(data);return data;
+    } catch {
+      if(skill){
+        if(!skill.dataset.loaded)skill.querySelector('[data-skill-value]').textContent='Нет данных';
+        skill.querySelector('[data-skill-sample]').textContent='Не удалось обновить рейтинг. Нажми «Обновить историю», чтобы повторить.';
+        skill.classList.add('is-stale');
+      }
+      return null;
+    } finally {if(skill&&skill.querySelector('[data-skill-value]').textContent.includes('/ 1000'))skill.dataset.loaded='1';}
+  }
+  function cards(s) {
    const c = [
-     ['OD Impact v1',s.impact==null?'Нет оценки':`${fmt(s.impact)} / 1000`,`${s.rated_games} из ${s.games} матчей оценены; покрытие метрик ${s.coverage}%`],
+     ['OD Impact v1',s.impact==null?'Нет оценки':`${fmt(s.impact)} / 1000`,`${s.rated_games} из ${s.games} матчей оценены`],
      ['Урон героям / мин',fmt(s.hero_dpm),`Данные: ${s.hero_dpm_games} матчей`],
      ['Урон зданиям / мин',fmt(s.tower_dpm),`Данные: ${s.tower_dpm_games} матчей`],
      ['Победы в выборке',s.games?`${Math.round(s.wins/s.games*100)}%`:'Нет данных',`${s.wins} побед из ${s.games} матчей`]
@@ -42,6 +68,7 @@
  }
  function render(data, browserCache=false) {
    current=data;page=data.page;
+    if(!Object.keys(data.filters||{}).length){headerRating(data);if(skill)skill.dataset.loaded='1';}
    const chosen=form.elements.patch.value;
    const patches=data.patches||[];
    if(patches.length){
@@ -49,22 +76,23 @@
      if(chosen && !patches.some(p=>String(p.id)===chosen)) form.elements.patch.add(new Option(`Патч ${chosen}`,chosen));
      form.elements.patch.value=chosen;
    }
-   summary.innerHTML=cards(data.summary)+`<p class="pw-summary-note">Сводка: последние ${data.summary.games} подходящих матчей (максимум 100), не вся история аккаунта. ${Object.keys(data.summary.modes).length>1?'Смешаны разные режимы — для сравнения выберите один.':''} Оценка приблизительная; линия известна в ${data.summary.roles_known} матчах.</p>`;
+   summary.innerHTML=cards(data.summary)+`<p class="pw-summary-note">Сводка: последние ${data.summary.games} подходящих матчей (максимум 100), не вся история аккаунта. ${Object.keys(data.summary.modes).length>1?'Смешаны разные режимы — для сравнения выберите один.':''} Оценка приблизительная.</p>`;
    rows.innerHTML=data.matches.length?data.matches.map((m,i)=>{
      const h=heroes[String(m.hero_id)]||{};const name=h.localized_name||`Герой ${m.hero_id}`;
      const image=h.name?`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${h.name.replace('npc_dota_hero_','')}.png`:'';
      const won=Boolean(m.radiant_win)===(Number(m.player_slot)<128);
      const url=new URL(`matches/${encodeURIComponent(m.match_id)}/overview`,window.OD_BASE?new URL(window.OD_BASE,location.origin):location.origin+'/');
      const dt=m.start_time?new Date(m.start_time*1000).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Нет даты';
-     return `<tr><td><a class="pw-match-link" href="${esc(url.href)}">${image?`<img loading="lazy" src="${esc(image)}" alt="">`:''}<span>${esc(name)}<small>#${esc(m.match_id)}</small></span></a></td><td class="${won?'pw-win':'pw-loss'}">${won?'Победа':'Поражение'}</td><td>${esc(modes[m.game_mode]||`Режим ${m.game_mode}`)}</td><td>${fmt(m.kills)} / ${fmt(m.deaths)} / ${fmt(m.assists)}</td><td>${fmt(m.hero_damage)}</td><td>${fmt(m.tower_damage)}</td><td><button type="button" class="pw-score" data-score="${i}">${m.impact.score==null?'Нет оценки':`${fmt(m.impact.score)} / 1000`}</button><small>${m.impact.coverage}% метрик</small></td><td>${esc(clock(m.duration||0))}<small>${esc(dt)}</small></td></tr>`;
+     return `<tr><td><a class="pw-match-link" href="${esc(url.href)}">${image?`<img loading="lazy" src="${esc(image)}" alt="">`:''}<span>${esc(name)}<small>#${esc(m.match_id)}</small></span></a></td><td class="${won?'pw-win':'pw-loss'}">${won?'Победа':'Поражение'}</td><td>${esc(modes[m.game_mode]||`Режим ${m.game_mode}`)}</td><td>${fmt(m.kills)} / ${fmt(m.deaths)} / ${fmt(m.assists)}</td><td>${fmt(m.hero_damage)}</td><td>${fmt(m.tower_damage)}</td><td><button type="button" class="pw-score" data-score="${i}">${m.impact.score==null?'Нет оценки':`${fmt(m.impact.score)} / 1000`}</button></td><td>${esc(clock(m.duration||0))}<small>${esc(dt)}</small></td></tr>`;
    }).join(''):'<tr><td colspan="8">Матчей с такими фильтрами нет. Попробуйте убрать линию, патч или ограничение по дате.</td></tr>';
    prev.disabled=page<=1;next.disabled=!data.has_next;
    root.querySelector('[data-page-label]').textContent=`Страница ${page}`;
    const age=data.cache.age_seconds;
-   notify(data.cache.stale?`Источник недоступен: показан устаревший кэш (${Math.round(age/60)} мин.). Повторите обновление позже.`:`${browserCache?'Из кэша браузера. ':''}История получена ${age<60?'меньше минуты':Math.floor(age/60)+' мин.'} назад. Кэш — 5 минут. Turbo ${form.elements.game_mode.value==='23'?'выбран':form.elements.game_mode.value?'не включён в выбранный режим':'включён'}.`,data.cache.stale);
+   notify(data.cache.stale?`Источник недоступен: показан устаревший кэш (${Math.round(age/60)} мин.). Повторите обновление позже.`:`${browserCache?'Из кэша браузера. ':''}История получена ${age<60?'меньше минуты':Math.floor(age/60)+' мин.'} назад. Кэш — 5 минут.`,data.cache.stale);
    root.querySelector('[data-match-breakdown]').hidden=true;
  }
  async function load({push=false,refresh=false}={}) {
+    const firstHeader=baselinePromise;baselinePromise=null;
    if(abort) abort.abort();abort=new AbortController();const token=++request;
    const q=query();const publicURL=new URL(base);publicURL.search=q;
    if(push) history.pushState({},'',publicURL);
@@ -81,8 +109,8 @@
    q.set('data','insights');if(refresh)q.set('refresh','1');
    const url=new URL(base);url.search=q;
    try{
-     const res=await fetch(url,{signal:abort.signal,headers:{Accept:'application/json'}});
-     const data=await res.json();if(!res.ok||!Array.isArray(data.matches))throw Error(data.error||data.message||`HTTP ${res.status}`);
+     let data = !refresh && page===1 && [...q.keys()].every(k=>k==='data') && firstHeader ? await firstHeader : null;
+      if(!data){const res=await fetch(url,{signal:abort.signal,headers:{Accept:'application/json'}});data=await res.json();if(!res.ok||!Array.isArray(data.matches))throw Error(data.error||data.message||`HTTP ${res.status}`);}
      if(token!==request)return;
      render(data);
      if(!data.cache.stale)try{sessionStorage.setItem(key,JSON.stringify({at:Date.now(),data}));}catch{}
@@ -92,7 +120,7 @@
  }
  form.addEventListener('submit',e=>{e.preventDefault();page=1;load({push:true});});
  root.querySelector('[data-reset]').addEventListener('click',()=>{form.reset();page=1;load({push:true});});
- root.querySelector('[data-refresh]').addEventListener('click',()=>load({refresh:true}));
+ root.querySelector('[data-refresh]').addEventListener('click',()=>{if([...new FormData(form)].some(([,v])=>v!==''))loadHeader(true);load({refresh:true});});
  prev.addEventListener('click',()=>{if(page>1){page--;load({push:true});}});
  next.addEventListener('click',()=>{page++;load({push:true});});
  window.addEventListener('popstate',()=>{restore();load();});
@@ -112,5 +140,5 @@
      details.hidden=false;details.open=true;details.scrollIntoView({behavior:'auto'});
    }
  });
- restore();load();
+ restore();baselinePromise=loadHeader();load();
 })();

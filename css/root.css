@@ -38,3 +38,13 @@
     --transition-base: 0.2s ease;
     --focus-ring: 0 0 0 2px rgba(52, 152, 219, 0.6);
 }
+
+/* Shared UI geometry, taken from match overview. */
+:root {
+    --table-cell-padding: 6px 10px;
+    --table-heading-padding: 8px 10px;
+    --table-heading-size: 11px;
+    --table-text-size: 13px;
+    --section-title-size: 16px;
+    --page-title-size: 22px;
+}

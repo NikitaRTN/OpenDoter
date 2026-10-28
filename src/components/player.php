@@ -13,7 +13,6 @@ function render_player_profile(array $profile, array $matches, array $heroes, ar
     $medal = rank_medal_parts($tier);
     $current_mmr = $profile['competitive_rank'] ?? $profile['solo_competitive_rank'] ?? null;
     $rank_mmr_range = rank_tier_mmr_range($tier);
-    $estimated_mmr = $profile['computed_mmr'] ?? $profile['mmr_estimate']['estimate'] ?? null;
     $is_plus = !empty($data['plus']);
     $aliases = is_array($profile['aliases'] ?? null) ? $profile['aliases'] : [];
     $is_me = current_account_id() !== null && current_account_id() === $account_id;
@@ -54,9 +53,9 @@ function render_player_profile(array $profile, array $matches, array $heroes, ar
         <div class="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center">
             <div class="relative shrink-0">
                 <?php if ($avatar !== ''): ?>
-                    <img class="h-[104px] w-[104px] rounded-xl border border-line object-cover shadow-card" src="<?php echo e($avatar); ?>" alt="">
+                    <img class="profile-avatar h-[104px] w-[104px] rounded-xl border border-line object-cover shadow-card" src="<?php echo e($avatar); ?>" alt="">
                 <?php else: ?>
-                    <div class="flex h-[104px] w-[104px] items-center justify-center rounded-xl border border-line bg-black/30 text-3xl font-bold text-muted"><?php echo e(mb_substr($name, 0, 1)); ?></div>
+                    <div class="profile-avatar flex h-[104px] w-[104px] items-center justify-center rounded-xl border border-line bg-black/30 text-3xl font-bold text-muted"><?php echo e(mb_substr($name, 0, 1)); ?></div>
                 <?php endif; ?>
                 <?php if ($is_plus): ?><span class="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold uppercase text-black shadow-soft">Plus</span><?php endif; ?>
             </div>
@@ -86,32 +85,39 @@ function render_player_profile(array $profile, array $matches, array $heroes, ar
                         <a class="inline-flex items-center gap-1.5 rounded-md border border-link bg-link/10 px-3.5 py-2 text-xs font-bold uppercase text-link transition-colors hover:bg-link/20 hover:text-link-hover" href="<?php echo e($data['profileurl']); ?>" target="_blank" rel="noreferrer">Steam</a>
                     <?php endif; ?>
                     <a class="inline-flex items-center gap-1.5 rounded-md border border-link bg-link/10 px-3.5 py-2 text-xs font-bold uppercase text-link transition-colors hover:bg-link/20 hover:text-link-hover" href="https://www.opendota.com/players/<?php echo e($account_id); ?>" target="_blank" rel="noreferrer">OpenDota</a>
-                    <a class="turbo-toggle is-on" href="#profile-history"><span class="turbo-toggle-text">Все режимы · фильтры ниже</span></a>
                     <?php if (!$is_me && $account_id !== ''): ?>
                         <a class="inline-flex items-center gap-1.5 rounded-md border border-radiant/50 bg-radiant/10 px-3.5 py-2 text-xs font-bold uppercase text-radiant transition-colors hover:bg-radiant/20" href="<?php echo e(app_url('login?account=' . urlencode($account_id))); ?>">Войти как этот игрок</a>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <div class="flex shrink-0 flex-col items-center gap-2 rounded-xl border border-line bg-black/25 px-6 py-4">
-                <div class="rank-medal">
-                    <img class="rank-medal-img" src="<?php echo e(rank_medal_img((int) $medal['major'])); ?>" alt="" loading="lazy" onerror="this.style.display='none'">
-                    <?php $star = rank_star_img((int) $medal['stars']); ?>
-                    <?php if ($star): ?><img class="rank-medal-stars" src="<?php echo e($star); ?>" alt="" loading="lazy" onerror="this.style.display='none'"><?php endif; ?>
-                </div>
-                <span class="text-center text-[12px] font-bold uppercase tracking-wide text-main"><?php echo e(get_rank_title($tier)); ?></span>
-                <div class="mmr-stack">
-                    <?php if ($current_mmr): ?>
-                        <span class="mmr-line mmr-current"><span>Текущий MMR</span><strong><?php echo e((int) $current_mmr); ?></strong></span>
-                    <?php elseif ($rank_mmr_range !== null): ?>
-                        <span class="mmr-line mmr-current"><span>MMR по рангу</span><strong><?php echo e(format_mmr_range($rank_mmr_range)); ?></strong></span>
+            <div class="profile-rank-panel" aria-label="Рейтинги игрока">
+                <div class="profile-rating profile-rating-rank">
+                    <span class="profile-rating-label">Ранг Dota 2</span>
+                    <div class="profile-rank-identity">
+                        <div class="rank-medal">
+                            <img class="rank-medal-img" src="<?php echo e(rank_medal_img((int)$medal['major'])); ?>" alt="" loading="lazy" onerror="this.style.display='none'">
+                            <?php $star=rank_star_img((int)$medal['stars']); if($star): ?><img class="rank-medal-stars" src="<?php echo e($star); ?>" alt="" loading="lazy" onerror="this.style.display='none'"><?php endif; ?>
+                        </div>
+                        <strong><?php echo e(get_rank_title($tier)); ?></strong>
+                    </div>
+                    <?php if (is_numeric($current_mmr) && (int)$current_mmr>0): ?>
+                        <span class="profile-mmr-value"><?php echo e((int)$current_mmr); ?> MMR</span>
+                        <small>Опубликованный MMR</small>
+                    <?php elseif ($rank_mmr_range!==null): ?>
+                        <span class="profile-mmr-value">≈ <?php echo e(format_mmr_range($rank_mmr_range)); ?> MMR</span>
+                        <small title="Точный MMR недоступен; диапазон соответствует медали">Оценка по медали</small>
                     <?php else: ?>
-                        <span class="mmr-line"><span>MMR по рангу</span><strong>нет ранга</strong></span>
-                    <?php endif; ?>
-                    <?php if ($estimated_mmr): ?>
-                        <span class="mmr-line mmr-estimate"><span>Оценка MMR OpenDota</span><strong>~<?php echo e((int) $estimated_mmr); ?></strong></span>
+                        <span class="profile-mmr-value">MMR неизвестен</span>
+                        <small>Рейтинг не опубликован</small>
                     <?php endif; ?>
                 </div>
+                <a class="profile-rating profile-rating-skill" href="#impact-method" data-profile-skill aria-live="polite" title="Оценка статистического вклада. Нажми, чтобы открыть формулу и ограничения.">
+                    <span class="profile-rating-label">Рейтинг OpenDoter</span>
+                    <strong data-skill-value>Загрузка…</strong>
+                    <span class="profile-rating-caption">Статистический вклад</span>
+                    <small data-skill-sample>Последние 100 матчей</small>
+                </a>
             </div>
         </div>
     </section>
