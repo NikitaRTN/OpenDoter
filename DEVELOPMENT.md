@@ -68,3 +68,13 @@ python -m unittest discover -s tests -v
 cd parser-master
 python -m unittest discover -s tests -v
 ```
+
+## Зависимость для новых реплеев Valve
+
+Перед обработкой реплеев установите зависимости API из корня проекта:
+
+```bash
+python -m pip install -r parser-master/requirements.txt
+```
+
+Файл по ссылке `.dem.bz2` может быть сжат Zstandard, а не BZip2. API определяет формат по заголовку файла и поддерживает оба варианта. После обновления перезапустите API. Ранее скачанные архивы можно использовать повторно.
