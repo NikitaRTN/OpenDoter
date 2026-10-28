@@ -8,7 +8,7 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
     $match_id = $requested_match_id ?: (string) $config['match_id'];
     $timeout = (float) $config['request_timeout'];
     $cache_ttl = (int) ($config['match_context_cache_ttl'] ?? 0);
-    $cache_key = 'match_' . $match_id . '_v2';
+    $cache_key = 'match_' . $match_id . '_v3';
 
     $cached = app_cache_get('match_context', $cache_key, $cache_ttl);
     if ($cached !== null) {
@@ -72,7 +72,7 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
     // pauses, cosmetics, draft_timings, gold/xp advantages) so views that
     // depend on them can render real data instead of empty placeholders.
     foreach (['teamfights', 'chat', 'objectives', 'pauses', 'cosmetics', 'draft_timings', 'radiant_gold_adv', 'radiant_xp_adv'] as $parsed_key) {
-        if (!empty($parsed[$parsed_key]) && is_array($parsed[$parsed_key]) && empty($match[$parsed_key])) {
+        if (!empty($parsed[$parsed_key]) && is_array($parsed[$parsed_key]) && (empty($match[$parsed_key]) || $parsed_key === 'teamfights')) {
             $match[$parsed_key] = $parsed[$parsed_key];
         }
     }
