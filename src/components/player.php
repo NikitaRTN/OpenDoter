@@ -21,6 +21,8 @@ function render_player_profile(array $profile, array $matches, array $heroes, ar
     $total_wins = (int) ($st['total_wins'] ?? 0);
     $total_losses = (int) ($st['total_losses'] ?? 0);
     $winrate = (float) ($st['winrate'] ?? 0);
+    $has_wl = (int) ($st['total_games'] ?? ($total_wins + $total_losses)) > 0;
+    $has_recent = (int) ($st['sample'] ?? 0) > 0;
     $matches_page = max(1, (int) ($st['page'] ?? 1));
     $has_next_page = !empty($st['has_next_page']);
     $include_turbo = !empty($st['include_turbo']);
@@ -123,28 +125,28 @@ function render_player_profile(array $profile, array $matches, array $heroes, ar
     </section>
 
     <?php
-    $sample_note = ($st['has_full_wl'] ?? false) ? 'за всё время' : 'по последним ' . (int) ($st['sample'] ?? 0) . ' матчам';
+    $sample_note = !$has_wl ? 'Нет данных от OpenDota' : (($st['has_full_wl'] ?? false) ? 'за всё время' : 'по последним ' . (int) ($st['sample'] ?? 0) . ' матчам');
     ?>
     <section class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div class="stat-card">
             <span class="stat-card-label">Победы</span>
-            <span class="stat-card-value text-radiant"><?php echo e($total_wins); ?></span>
+            <span class="stat-card-value text-radiant"><?php echo $has_wl ? e($total_wins) : '—'; ?></span>
             <span class="stat-card-sub"><?php echo e($sample_note); ?></span>
         </div>
         <div class="stat-card">
             <span class="stat-card-label">Поражения</span>
-            <span class="stat-card-value text-dire"><?php echo e($total_losses); ?></span>
+            <span class="stat-card-value text-dire"><?php echo $has_wl ? e($total_losses) : '—'; ?></span>
             <span class="stat-card-sub"><?php echo e($sample_note); ?></span>
         </div>
         <div class="stat-card">
             <span class="stat-card-label">Винрейт</span>
-            <span class="stat-card-value <?php echo $winrate >= 50 ? 'text-radiant' : 'text-dire'; ?>"><?php echo e($winrate); ?>%</span>
-            <div class="winrate-bar mt-2"><span style="width: <?php echo e(min(100, max(0, $winrate))); ?>%"></span></div>
+            <span class="stat-card-value <?php echo $has_wl ? ($winrate >= 50 ? 'text-radiant' : 'text-dire') : ''; ?>"><?php echo $has_wl ? e($winrate) . '%' : '—'; ?></span>
+            <?php if ($has_wl): ?><div class="winrate-bar mt-2"><span style="width: <?php echo e(min(100, max(0, $winrate))); ?>%"></span></div><?php else: ?><span class="stat-card-sub">Нет данных от OpenDota</span><?php endif; ?>
         </div>
         <div class="stat-card">
             <span class="stat-card-label">KDA последних 100 матчей</span>
-            <span class="stat-card-value text-gold"><?php echo e($st['avg_kda'] ?? 0); ?></span>
-            <span class="stat-card-sub"><?php echo e($st['avg_kills'] ?? 0); ?> / <?php echo e($st['avg_deaths'] ?? 0); ?> / <?php echo e($st['avg_assists'] ?? 0); ?></span>
+            <span class="stat-card-value text-gold"><?php echo $has_recent ? e($st['avg_kda'] ?? 0) : '—'; ?></span>
+            <span class="stat-card-sub"><?php if ($has_recent): ?><?php echo e($st['avg_kills'] ?? 0); ?> / <?php echo e($st['avg_deaths'] ?? 0); ?> / <?php echo e($st['avg_assists'] ?? 0); ?><?php else: ?>Матчи недоступны<?php endif; ?></span>
         </div>
     </section>
 

@@ -23,4 +23,10 @@ if(strpos($html,'Все + Turbo')!==false||strpos($html,'turbo-toggle')!==false)
 $js=file_get_contents(__DIR__.'/../src/assets/profile-workspace.js');
 if(strpos($js,'<small>${m.impact.coverage}%')!==false||strpos($js,'покрытие метрик ${s.coverage}')!==false)throw new RuntimeException('Coverage noise returned');
 if(strpos($html,'profile-rating-rank')===false||strpos($html,'href="#impact-method" data-profile-skill')===false)throw new RuntimeException('Paired rating cards missing');
-echo "Profile PHP regressions PASS (12 checks)\n";
+$empty=compute_player_stats([], [], ['win'=>0, 'lose'=>0], []);
+ob_start(); render_player_profile(['profile'=>['account_id'=>328373950,'personaname'=>'Fixture']], [], [], $empty); $emptyHtml=ob_get_clean();
+if (substr_count($emptyHtml, 'Нет данных от OpenDota') < 3 || strpos($emptyHtml, 'Матчи недоступны') === false) throw new RuntimeException('Unavailable profile data displayed as real zeros');
+$played=compute_player_stats([['hero_id'=>1,'player_slot'=>0,'radiant_win'=>false,'kills'=>0,'deaths'=>1,'assists'=>0,'duration'=>900]], [], ['win'=>0, 'lose'=>1], []);
+ob_start(); render_player_profile(['profile'=>['account_id'=>1]], [], [], $played); $playedHtml=ob_get_clean();
+if (strpos($playedHtml, 'Нет данных от OpenDota') !== false || strpos($playedHtml, '0%') === false) throw new RuntimeException('Real zero winrate should remain visible');
+echo "Profile PHP regressions PASS (14 checks)\n";

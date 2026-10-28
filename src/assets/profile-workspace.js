@@ -84,7 +84,7 @@
      const url=new URL(`matches/${encodeURIComponent(m.match_id)}/overview`,window.OD_BASE?new URL(window.OD_BASE,location.origin):location.origin+'/');
      const dt=m.start_time?new Date(m.start_time*1000).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Нет даты';
      return `<tr><td><a class="pw-match-link" href="${esc(url.href)}">${image?`<img loading="lazy" src="${esc(image)}" alt="">`:''}<span>${esc(name)}<small>#${esc(m.match_id)}</small></span></a></td><td class="${won?'pw-win':'pw-loss'}">${won?'Победа':'Поражение'}</td><td>${esc(modes[m.game_mode]||`Режим ${m.game_mode}`)}</td><td>${fmt(m.kills)} / ${fmt(m.deaths)} / ${fmt(m.assists)}</td><td>${fmt(m.hero_damage)}</td><td>${fmt(m.tower_damage)}</td><td><button type="button" class="pw-score" data-score="${i}">${m.impact.score==null?'Нет оценки':`${fmt(m.impact.score)} / 1000`}</button></td><td>${esc(clock(m.duration||0))}<small>${esc(dt)}</small></td></tr>`;
-   }).join(''):'<tr><td colspan="8">Матчей с такими фильтрами нет. Попробуйте убрать линию, патч или ограничение по дате.</td></tr>';
+   }).join(''):(Object.keys(data.filters||{}).length ? '<tr><td colspan="8">Матчей с такими фильтрами нет. Попробуйте убрать линию, патч или ограничение по дате.</td></tr>' : '<tr><td colspan="8">OpenDota не вернул историю матчей: она недоступна или пока пуста.</td></tr>');
    prev.disabled=page<=1;next.disabled=!data.has_next;
    root.querySelector('[data-page-label]').textContent=`Страница ${page}`;
    const age=data.cache.age_seconds;
@@ -96,7 +96,7 @@
    if(abort) abort.abort();abort=new AbortController();const token=++request;
    const q=query();const publicURL=new URL(base);publicURL.search=q;
    if(push) history.pushState({},'',publicURL);
-   const key=`od-profile-v1:${root.dataset.account}:${q}`;
+   const key=`od-profile-v2:${root.dataset.account}:${q}`;
    let cached=null;
    try {cached=JSON.parse(sessionStorage.getItem(key));}catch{}
    if(cached){
