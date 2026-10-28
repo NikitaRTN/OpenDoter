@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-function load_match_context(array $config, ?string $requested_match_id = null): array
+function load_match_context(array $config, ?string $requested_match_id = null, bool $bypass_cache = false): array
 {
     $api_base = rtrim((string) $config['api_base'], '/');
     $match_id = $requested_match_id ?: (string) $config['match_id'];
@@ -10,7 +10,7 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
     $cache_ttl = (int) ($config['match_context_cache_ttl'] ?? 0);
     $cache_key = 'match_' . $match_id . '_v4';
 
-    $cached = app_cache_get('match_context', $cache_key, $cache_ttl);
+    $cached = $bypass_cache ? null : app_cache_get('match_context', $cache_key, $cache_ttl);
     if ($cached !== null) {
         return $cached;
     }

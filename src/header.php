@@ -79,6 +79,7 @@ $is_match_page = isset($match_id, $match);
     <?php if (in_array($current_tab, ['damage', 'teamfights'], true)): ?>
     <link rel="stylesheet" href="<?php echo e(asset_url('css/match-insights.css')); ?>?v=<?php echo e((string) filemtime(__DIR__ . '/../css/match-insights.css')); ?>">
     <?php endif; ?>
+    <?php if (($route['tab'] ?? '') === 'teamfights'): ?><link rel="stylesheet" href="<?php echo e(asset_url('css/teamfights-compact.css')); ?>?v=<?php echo filemtime(__DIR__.'/../css/teamfights-compact.css'); ?>"><?php endif; ?>
     <script>window.OD_BASE = <?php echo json_encode(rtrim(app_url(), '/') . '/', JSON_UNESCAPED_SLASHES); ?>;</script>
     <script defer src="<?php echo e(asset_url('src/assets/app.js')); ?>"></script>
 </head>

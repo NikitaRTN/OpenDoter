@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-/** Teamfight view: explicit participation, readable summaries, expandable details. */
-function render_teamfights_match_tab(mixed $teamfights, array $radiant_players, array $dire_players, array $heroes): void
+/** Compact overview-style fight tables and real combat-log chronology. */
+function render_teamfights_match_tab(mixed $teamfights, array $radiant_players, array $dire_players, array $heroes, array $assets = []): void
 {
     if (!is_array($teamfights) || $teamfights === []) {
         echo '<div class="match-insights"><header class="insight-intro"><h2>Командные бои</h2></header><div class="insight-note"><strong>Боевые эпизоды пока недоступны.</strong> Нужен обработанный реплей. Если он уже обработан, в нём могло не быть эпизодов с тремя и более смертями.</div></div>';
@@ -12,61 +12,80 @@ function render_teamfights_match_tab(mixed $teamfights, array $radiant_players, 
     $slots = index_players_by_slot_for_teamfights($radiant_players, $dire_players);
     $positions = build_teamfight_position_index($radiant_players, $dire_players);
     $summary = summarize_teamfights($teamfights, $slots, $positions, $heroes);
+    $needs_timeline = count(array_filter($teamfights, static fn($fight) => !is_array($fight) || ($fight['actions_version'] ?? null) !== 1 || !is_array($fight['actions'] ?? null))) > 0;
+    $refresh_id = (string) ($assets['match_id'] ?? '');
     ?>
-    <div class="match-insights teamfight-insights">
-        <header class="insight-intro"><span class="insight-eyebrow">РАЗБОР МАТЧА · СРАЖЕНИЯ</span><h2>Командные бои</h2><p>Составы, размены и вклад каждого участника. Только игроки с подтверждёнными боевыми событиями.</p></header>
-        <div class="insight-kpis"><div class="insight-kpi"><span class="insight-muted">Эпизоды</span><strong><?php echo e((string) count($teamfights)); ?></strong><small>В хронологическом порядке</small></div><div class="insight-kpi"><span class="insight-muted">В пользу Света</span><strong class="insight-radiant"><?php echo e((string) $summary['radiant_wins']); ?></strong><small>Эпизодов по оценке сайта</small></div><div class="insight-kpi"><span class="insight-muted">В пользу Тьмы</span><strong class="insight-dire"><?php echo e((string) $summary['dire_wins']); ?></strong><small>Остальные эпизоды — без преимущества</small></div></div>
-        <details class="insight-details teamfight-method"><summary><span><strong>Кто считается участником и как читать итог</strong><small>Пассивный доход и самолечение не означают участия в бою</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body insight-glossary"><div><h4>Участники</h4><p>Убийство, смерть, нанесённый или полученный урон в противостоянии героев, направленная на противника способность либо лечение союзника, участвующего в бою. Фарм, золото, опыт, выкуп и использование предмета сами по себе не подтверждают участие.</p></div><div><h4>Границы эпизода</h4><p>Парсер объединяет серию смертей с интервалами до 15 секунд и оставляет эпизоды с 3+ смертями. Это временное окно: оно может объединять события в разных частях карты.</p></div><div><h4>Преимущество — оценка сайта</h4><p>Для каждой стороны: убийства минус смерти, плюс 1 при положительном изменении золота участников. Больший результат даёт преимущество. Это эвристика, а не официальный вердикт Dota.</p></div><div><h4>Золото и опыт</h4><p>Δ — изменение за время эпизода у показанных участников. Может включать фарм и пассивный доход; это не только награда за убийства. Лечение союзников не включает самолечение.</p></div></div></details>
-        <div class="insight-section-heading"><div><h3>Ход сражений</h3><p>Нажми на эпизод, чтобы увидеть вклад игроков. Первый эпизод уже раскрыт.</p></div></div>
+    <div class="match-insights teamfight-insights tf-workspace">
+        <header class="tf-heading"><div><span class="insight-eyebrow">РАЗБОР МАТЧА · СРАЖЕНИЯ</span><h2>Командные бои</h2></div><div class="tf-record"><strong><?php echo count($teamfights); ?></strong> эпизодов <span class="insight-radiant">Свет <?php echo $summary['radiant_wins']; ?></span><span class="insight-dire">Тьма <?php echo $summary['dire_wins']; ?></span><small>с преимуществом по оценке сайта</small></div></header>
+        <details class="tf-method"><summary>Как читать бои и танкование</summary><p>Эпизод — серия из 3+ смертей с промежутками до 15 секунд и запасом 15 секунд по краям. Это временное окно, а не гарантия одной драки в одном месте. Участие подтверждается взаимодействиями героев, а не фармом или самолечением.</p><p><b>Получено</b> — фактический урон от вражеских героев за эпизод, после уменьшения. Рядом — доля входящего урона команды. Это объём принятого урона, не оценка полезности танкования; сюда не подставляются итоговые счётчики матча. <b>Лечение</b> — союзникам, участвующим в бою, без самолечения.</p><p>Преимущество: убийства минус смерти, плюс 1 при положительном Δ золота участников. Это эвристика сайта. Δ золота и опыта включает весь интервал, в том числе фарм. Журнал показывает зарегистрированные применения, убийства и выкупы, не все нажатия клавиш. Точность времени — секунда; внутри секунды сохранён порядок событий реплея.</p></details>
+        <?php if ($needs_timeline && ctype_digit($refresh_id)): ?>
+        <div class="tf-refresh" data-tf-refresh data-id="<?php echo e($refresh_id); ?>" data-url="<?php echo e(app_url('api/parse')); ?>" data-status-url="<?php echo e(app_url('api/status/' . $refresh_id)); ?>"><span>Для старого разбора можно восстановить хронологию из сохранённого журнала реплея.</span> <button type="button">Обновить хронологию</button> <span data-tf-refresh-status role="status" aria-live="polite"></span></div>
+        <?php endif; ?>
         <div class="teamfights-list">
-        <?php foreach ($teamfights as $idx => $fight): render_teamfight_card(analyze_teamfight($fight, $idx, $slots, $positions, $heroes), $heroes); endforeach; ?>
+        <?php foreach ($teamfights as $idx => $fight): render_teamfight_card(analyze_teamfight($fight, $idx, $slots, $positions, $heroes), $heroes, $assets); endforeach; ?>
         </div>
     </div>
+    <script defer src="<?php echo e(asset_url('src/assets/teamfights.js')); ?>?v=<?php echo filemtime(__DIR__ . '/../../assets/teamfights.js'); ?>"></script>
     <?php
 }
 
-function render_teamfight_card(array $breakdown, array $heroes): void
+function teamfight_action_icon(string $name, string $kind, array $assets = [], int $count = 0): string
+{
+    $label = short_skill_name($name);
+    $source = '';
+    if (preg_match('/^[a-zA-Z0-9_]+$/D', $name)) {
+        $entry = $kind === 'item' ? ($assets['items'][$name] ?? []) : ($assets['abilities'][$name] ?? []);
+        $label = (string) ($entry['dname'] ?? $label);
+        $img = (string) ($entry['img'] ?? '');
+        $source = $img !== '' ? (str_starts_with($img, 'https://') ? explode('?', $img)[0] : 'https://cdn.cloudflare.steamstatic.com' . explode('?', $img)[0]) : 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/' . ($kind === 'item' ? 'items/' : 'abilities/') . rawurlencode($name) . '.png';
+    }
+    $title = ($kind === 'item' ? 'Предмет: ' : 'Способность: ') . $label . ($count > 0 ? ' ×' . $count : '');
+    return '<span class="tf-use tf-use-' . e($kind) . '" title="' . e($title) . '"><span class="tf-icon-fallback" aria-hidden="true">?</span>' . ($source !== '' ? '<img src="' . e($source) . '" alt="' . e($label) . '" loading="lazy">' : '<span>' . e($label) . '</span>') . ($count > 1 ? '<b>×' . $count . '</b>' : '') . '</span>';
+}
+
+function render_teamfight_card(array $breakdown, array $heroes, array $assets = []): void
 {
     $winner = $breakdown['winner_team'];
-    $outcome = $winner === 'draw' ? 'Без преимущества' : 'Преимущество: ' . ($winner === 'radiant' ? 'Свет' : 'Тьма');
-    $groups = ['radiant' => [], 'dire' => []];
-    foreach ($breakdown['participants'] as $p) {
-        if (!empty($p['participated'])) { $groups[$p['team']][] = $p; }
-    }
+    $groups = ['radiant' => [], 'dire' => []]; $by_slot = [];
+    foreach ($breakdown['participants'] as $p) { $groups[$p['team']][] = $p; $by_slot[$p['slot']] = $p; }
+    $id = 'tf-' . $breakdown['index'];
     ?>
-    <details class="teamfight-card insight-fight <?php echo e($winner); ?>" data-fight="<?php echo e((string) $breakdown['index']); ?>" <?php echo $breakdown['index'] === 0 ? 'open' : ''; ?>>
+    <details class="teamfight-card insight-fight <?php echo e($winner); ?>" data-fight="<?php echo $breakdown['index']; ?>" <?php echo $breakdown['index'] === 0 ? 'open' : ''; ?>>
         <summary class="fight-summary">
-            <div class="fight-time"><span class="insight-eyebrow">ЭПИЗОД <?php echo e((string) ($breakdown['index'] + 1)); ?></span><strong><?php echo e(format_match_tab_time((int) $breakdown['start'])); ?> — <?php echo e(format_match_tab_time((int) $breakdown['end'])); ?></strong><small><?php echo e((string) $breakdown['duration']); ?> сек. · Участников: <?php echo e((string) (count($groups['radiant']) + count($groups['dire']))); ?></small></div>
-            <div class="fight-score"><span class="insight-radiant">Свет</span><strong aria-label="Убийства Света и Тьмы"><?php echo e((string) $breakdown['radiant_kills']); ?> <span>:</span> <?php echo e((string) $breakdown['dire_kills']); ?></strong><span class="insight-dire">Тьма</span><small>Убийства в эпизоде</small></div>
-            <div class="fight-outcome"><span class="fight-verdict <?php echo e($winner); ?>"><?php echo e($outcome); ?></span><span class="insight-expand" aria-hidden="true">+</span></div>
-            <div class="fight-rosters">
-            <?php foreach ($groups as $team => $roster): ?>
-                <div class="fight-roster"><span class="<?php echo $team === 'radiant' ? 'insight-radiant' : 'insight-dire'; ?>"><?php echo $team === 'radiant' ? 'Свет' : 'Тьма'; ?> · <?php echo e((string) count($roster)); ?></span><div><?php foreach ($roster as $p): ?><img src="<?php echo e(get_hero_img($p['hero_id'], $heroes)); ?>" alt="<?php echo e($p['hero_name']); ?>" title="<?php echo e($p['hero_name'] . ' · ' . $p['persona']); ?>" loading="lazy"><?php endforeach; ?></div></div>
-            <?php endforeach; ?>
-            </div>
+            <div class="fight-time"><span class="insight-eyebrow">БОЙ <?php echo $breakdown['index'] + 1; ?></span><strong><?php echo e(format_match_tab_time($breakdown['start'])); ?> — <?php echo e(format_match_tab_time($breakdown['end'])); ?></strong><small><?php echo $breakdown['duration']; ?> сек. · <?php echo count($by_slot); ?> участников</small></div>
+            <div class="fight-score"><span class="insight-radiant">Свет</span><strong><?php echo $breakdown['radiant_kills']; ?> : <?php echo $breakdown['dire_kills']; ?></strong><span class="insight-dire">Тьма</span></div>
+            <div class="fight-outcome"><span class="fight-verdict <?php echo e($winner); ?>"><?php echo $winner === 'draw' ? 'Без преимущества' : 'Преимущество: ' . ($winner === 'radiant' ? 'Свет' : 'Тьма'); ?></span><span class="insight-expand" aria-hidden="true">+</span></div>
         </summary>
         <div class="fight-detail-body">
-            <div class="fight-team-totals" role="region" aria-label="Итоги команд" tabindex="0"><table><caption>Итоги показанных участников за время эпизода</caption><thead><tr><th>Команда</th><th>Убийства</th><th>Урон героям</th><th>Δ золото</th><th>Δ опыт</th></tr></thead><tbody>
-            <?php foreach (['radiant' => 'Свет', 'dire' => 'Тьма'] as $team => $label): ?><tr><th scope="row" class="<?php echo $team === 'radiant' ? 'insight-radiant' : 'insight-dire'; ?>"><?php echo e($label); ?></th><td><?php echo e((string) $breakdown[$team . '_kills']); ?></td><td><?php echo e(number_format($breakdown[$team . '_damage'], 0, '.', ' ')); ?></td><td><?php echo e(format_delta_short($breakdown[$team . '_gold'])); ?></td><td><?php echo e(format_delta_short($breakdown[$team . '_xp'])); ?></td></tr><?php endforeach; ?>
-            </tbody></table></div>
-            <?php foreach ($groups as $team => $roster): ?>
-            <section class="fight-team-participants"><h4 class="<?php echo $team === 'radiant' ? 'insight-radiant' : 'insight-dire'; ?>"><?php echo $team === 'radiant' ? 'Свет' : 'Тьма'; ?> <span class="insight-muted">· Участников: <?php echo e((string) count($roster)); ?></span></h4>
+            <?php foreach ($groups as $team => $roster):
+                $incoming = array_column($roster, 'damage_taken');
+                $has_incoming = $incoming !== [] && !in_array(null, $incoming, true);
+                $total_incoming = $has_incoming ? array_sum($incoming) : null;
+            ?>
+            <section class="fight-team-participants"><div class="tf-team-heading"><h4 class="<?php echo $team === 'radiant' ? 'insight-radiant' : 'insight-dire'; ?>"><?php echo $team === 'radiant' ? 'СИЛЫ СВЕТА' : 'СИЛЫ ТЬМЫ'; ?> <small>· <?php echo count($roster); ?></small></h4><div><span>Урон <b><?php echo number_format($breakdown[$team . '_damage'], 0, '.', ' '); ?></b></span><span>Получено <b><?php echo $total_incoming === null ? '—' : number_format($total_incoming, 0, '.', ' '); ?></b></span><span>Δ золото <b><?php echo e(format_delta_short($breakdown[$team . '_gold'])); ?></b></span></div></div>
             <?php if ($roster === []): ?><p class="insight-muted">Нет подтверждённых участников.</p><?php else: ?>
-            <table class="fight-participants-table"><thead><tr><th>Игрок</th><th>Убийства / смерти</th><th>Урон героям</th><th>Лечение союзников</th><th>Δ золото</th><th>Δ опыт</th></tr></thead><tbody>
+            <div class="tf-swipe-hint">Сдвиньте таблицу влево, чтобы увидеть все показатели →</div><div class="tf-table-scroll" role="region" aria-label="Вклад участников <?php echo $team === 'radiant' ? 'Света' : 'Тьмы'; ?>" tabindex="0"><table class="tf-player-table"><thead><tr><th>Игрок</th><th>У / С</th><th>Урон героям</th><th title="После уменьшения, только от вражеских героев">Получено</th><th>Лечение</th><th>Δ золото</th><th>Δ опыт</th><th>Применения · нажми для хронологии</th></tr></thead><tbody>
             <?php foreach ($roster as $p): ?>
-                <tr data-player-slot="<?php echo e((string) $p['slot']); ?>" data-participated="true">
-                    <td><div class="insight-player"><img src="<?php echo e(get_hero_img($p['hero_id'], $heroes)); ?>" alt="" loading="lazy"><div><?php if ($p['account_id'] > 0): ?><a href="<?php echo e(player_url($p['account_id'])); ?>"><?php echo e($p['persona']); ?></a><?php else: ?><strong><?php echo e($p['persona']); ?></strong><?php endif; ?><small><?php echo e($p['hero_name']); ?></small></div></div>
-                    <?php if ($p['ability_uses'] !== [] || $p['item_uses'] !== [] || $p['buybacks'] > 0): ?><details class="fight-player-actions"><summary>Частые действия</summary><div><?php foreach (['ability_uses' => 'Способность', 'item_uses' => 'Предмет'] as $key => $label): foreach ($p[$key] as $use): ?><span><small><?php echo e($label); ?></small> <?php echo e(short_skill_name($use['name'])); ?> ×<?php echo e((string) $use['count']); ?></span><?php endforeach; endforeach; ?><?php if ($p['buybacks'] > 0): ?><span>Выкуп ×<?php echo e((string) $p['buybacks']); ?></span><?php endif; ?></div></details><?php endif; ?></td>
-                    <td data-label="Убийства / смерти" title="<?php echo e($p['kills'] > 0 ? 'Убил: ' . implode(', ', $p['killed_names']) : 'Без убийств'); ?>"><span class="insight-radiant"><?php echo e((string) $p['kills']); ?></span> / <span class="<?php echo $p['deaths'] > 0 ? 'insight-dire' : ''; ?>"><?php echo e((string) $p['deaths']); ?></span></td>
-                    <td data-label="Урон героям" class="insight-number"><strong><?php echo e(number_format($p['damage'], 0, '.', ' ')); ?></strong></td>
-                    <td data-label="Лечение союзников" class="insight-number"><?php echo $p['combat_healing'] === null ? '—' : e(number_format($p['combat_healing'], 0, '.', ' ')); ?></td>
-                    <td data-label="Δ золото" class="insight-number <?php echo $p['gold_delta'] < 0 ? 'insight-dire' : ''; ?>"><?php echo e(format_delta_short($p['gold_delta'])); ?></td>
-                    <td data-label="Δ опыт" class="insight-number"><?php echo e(format_delta_short($p['xp_delta'])); ?></td>
+                <tr data-player-slot="<?php echo $p['slot']; ?>" data-participated="true">
+                    <td><div class="insight-player"><img src="<?php echo e(get_hero_img($p['hero_id'], $heroes)); ?>" alt="" loading="lazy"><div><?php if ($p['account_id'] > 0): ?><a href="<?php echo e(player_url($p['account_id'])); ?>"><?php echo e($p['persona']); ?></a><?php else: ?><strong><?php echo e($p['persona']); ?></strong><?php endif; ?><small><?php echo e($p['hero_name']); ?></small></div></div></td>
+                    <td title="<?php echo e(implode(', ', $p['killed_names'])); ?>"><span class="insight-radiant"><?php echo $p['kills']; ?></span> / <span class="<?php echo $p['deaths'] > 0 ? 'insight-dire' : ''; ?>"><?php echo $p['deaths']; ?></span></td>
+                    <td><strong><?php echo number_format($p['damage'], 0, '.', ' '); ?></strong></td>
+                    <td class="tf-incoming"><strong><?php echo $p['damage_taken'] === null ? '—' : number_format($p['damage_taken'], 0, '.', ' '); ?></strong><?php if ($total_incoming > 0 && $p['damage_taken'] !== null): ?><small><?php echo round(100 * $p['damage_taken'] / $total_incoming); ?>% команды</small><?php endif; ?></td>
+                    <td><?php echo $p['combat_healing'] === null ? '—' : number_format($p['combat_healing'], 0, '.', ' '); ?></td>
+                    <td class="<?php echo $p['gold_delta'] < 0 ? 'insight-dire' : ''; ?>"><?php echo e(format_delta_short($p['gold_delta'])); ?></td><td><?php echo e(format_delta_short($p['xp_delta'])); ?></td>
+                    <td><button type="button" class="tf-player-uses" data-tf-player="<?php echo $p['slot']; ?>" aria-label="Действия <?php echo e($p['persona']); ?> по времени"><?php foreach (['ability_uses' => 'ability', 'item_uses' => 'item'] as $key => $kind): foreach ($p[$key] as $use): echo teamfight_action_icon($use['name'], $kind, $assets, $use['count']); endforeach; endforeach; ?><?php if ($p['ability_uses'] === [] && $p['item_uses'] === []): ?><span class="insight-muted">Журнал →</span><?php endif; ?></button></td>
                 </tr>
             <?php endforeach; ?>
-            </tbody></table><?php endif; ?></section>
+            </tbody></table></div><?php endif; ?></section>
             <?php endforeach; ?>
-            <p class="fight-footnote">Золото и опыт — за весь интервал, не только за убийства. Действия — самые частые за этот интервал; они не служат самостоятельным признаком участия.</p>
+            <section class="tf-timeline" id="<?php echo $id; ?>-log"><div class="tf-log-heading"><h4>Хронология боя <small data-tf-count></small></h4><div class="tf-log-filters"><label>Игрок<select data-tf-filter="player"><option value="all">Все участники</option><?php foreach ($by_slot as $p): ?><option value="<?php echo $p['slot']; ?>"><?php echo e($p['hero_name'] . ' · ' . $p['persona']); ?></option><?php endforeach; ?></select></label><label>События<select data-tf-filter="kind"><option value="all">Все события</option><option value="ability">Способности</option><option value="item">Предметы</option><option value="kill">Убийства</option><option value="buyback">Выкупы</option></select></label></div></div>
+            <?php if ($breakdown['actions'] === null): ?><p class="tf-empty">В этом разборе сохранены только количества применений. Для времени и последовательности нужен повторный разбор реплея; порядок из счётчиков не восстанавливается.</p><?php else: ?>
+                <div class="tf-event-scroll" role="region" aria-label="События по времени" tabindex="0"><ol class="tf-events">
+                <?php foreach ($breakdown['actions'] as $action):
+                    $actor = isset($action['slot']) ? ($by_slot[$action['slot']] ?? null) : null; $target = isset($action['target_slot']) ? ($by_slot[$action['target_slot']] ?? null) : null;
+                ?><li class="tf-event" data-kind="<?php echo e($action['kind']); ?>" data-actor="<?php echo $action['slot'] ?? -1; ?>" data-target="<?php echo $action['target_slot'] ?? -1; ?>" data-time="<?php echo $action['time']; ?>" data-sequence="<?php echo $action['sequence']; ?>"><time><?php echo e(format_match_tab_time($action['time'])); ?></time><span class="tf-event-actor" title="<?php echo e($actor['persona'] ?? 'Окружение'); ?>"><?php if ($actor): ?><img src="<?php echo e(get_hero_img($actor['hero_id'], $heroes)); ?>" alt=""><?php endif; ?><?php echo e($actor['hero_name'] ?? 'Окружение'); ?></span><span class="tf-event-action"><?php if (in_array($action['kind'], ['ability', 'item'], true)): echo teamfight_action_icon($action['key'], $action['kind'], $assets); ?><span><?php echo e(short_skill_name($action['key'])); ?></span><?php else: ?><b class="<?php echo $action['kind'] === 'kill' ? 'insight-dire' : ''; ?>"><?php echo $action['kind'] === 'kill' ? 'Убийство' : 'Выкуп'; ?></b><?php endif; ?></span><?php if ($target): ?><span class="tf-event-target">→ <img src="<?php echo e(get_hero_img($target['hero_id'], $heroes)); ?>" alt=""><?php echo e($target['hero_name']); ?></span><?php endif; ?></li><?php endforeach; ?>
+                </ol></div><p class="tf-empty" data-tf-empty hidden>Нет событий с выбранными фильтрами.</p>
+            <?php endif; ?><p class="tf-log-note">Время матча · порядок внутри секунды — по журналу реплея. В таблице — топ-3 способности и предмета; в журнале — все сохранённые применения.</p></section>
         </div>
     </details>
     <?php
@@ -215,6 +234,7 @@ function analyze_teamfight(array $fight, int $idx, array $slot_index, array $pos
             'gold_delta' => $gold_delta,
             'xp_delta' => $xp_delta,
             'damage' => $damage,
+            'damage_taken' => isset($tf_player['damage_taken']) ? (int) $tf_player['damage_taken'] : null,
             'healing' => $healing,
             'combat_healing' => isset($tf_player['combat_healing']) ? (int) $tf_player['combat_healing'] : null,
             'buybacks' => $buybacks,
@@ -269,6 +289,7 @@ function analyze_teamfight(array $fight, int $idx, array $slot_index, array $pos
     });
 
     return [
+        'actions' => normalize_teamfight_actions($fight, $position_index),
         'index' => $idx,
         'start' => $start,
         'end' => $end,
@@ -332,4 +353,19 @@ function format_delta_short(int $value): string
 function short_skill_name(string $name): string
 {
     return ucwords(str_replace('_', ' ', preg_replace('/^item_/', '', $name) ?? $name));
+}
+
+function normalize_teamfight_actions(array $fight, array $positions): ?array
+{
+    if (($fight['actions_version'] ?? 0) !== 1 || !is_array($fight['actions'] ?? null)) { return null; }
+    $result = [];
+    foreach ($fight['actions'] as $a) {
+        if (!is_array($a) || !in_array($a['kind'] ?? '', ['ability', 'item', 'kill', 'buyback'], true) || !is_numeric($a['time'] ?? null)) { continue; }
+        $time = (int) $a['time'];
+        if ($time < (int) ($fight['start'] ?? 0) || $time > (int) ($fight['end'] ?? 0)) { continue; }
+        if (in_array($a['kind'], ['ability', 'item'], true) && (!is_string($a['key'] ?? null) || !preg_match('/^[a-zA-Z0-9_]+$/D', $a['key']))) { continue; }
+        $result[] = ['time' => $time, 'sequence' => (int) ($a['sequence'] ?? count($result)), 'kind' => $a['kind'], 'key' => (string) ($a['key'] ?? ''), 'slot' => isset($a['slot']) ? ($positions[(int) $a['slot']] ?? null) : null, 'target_slot' => isset($a['target_slot']) ? ($positions[(int) $a['target_slot']] ?? null) : null];
+    }
+    usort($result, static fn(array $a, array $b): int => ($a['time'] <=> $b['time']) ?: ($a['sequence'] <=> $b['sequence']));
+    return $result;
 }

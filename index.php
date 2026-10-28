@@ -29,7 +29,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
 ) {
     $early_match_id = $early_match[1];
     $early_tab = $early_match[2] ?? 'overview';
-    $early_version = in_array($early_tab, ['damage', 'teamfights'], true) ? 'v7' : 'v2';
+    $early_version = $early_tab === 'teamfights' ? 'v9' : ($early_tab === 'damage' ? 'v7' : 'v2');
     $early_cache_key = 'match_' . $early_match_id . '_' . $early_tab . '_anon_' . $early_version . '.cache';
     $early_cache_file = __DIR__ . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'match_pages' . DIRECTORY_SEPARATOR . $early_cache_key;
     if (is_file($early_cache_file) && (time() - (int) filemtime($early_cache_file)) < 86400) {
@@ -111,7 +111,7 @@ try {
             && empty($_COOKIE['opendoter_uid'])
             && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
             && empty($_GET);
-        $page_version = in_array($current_tab, ['damage', 'teamfights'], true) ? 'v7' : 'v2';
+        $page_version = $current_tab === 'teamfights' ? 'v9' : ($current_tab === 'damage' ? 'v7' : 'v2');
         $page_cache_key = 'match_' . $match_id_for_cache . '_' . $current_tab . '_anon_' . $page_version;
 
         if ($can_use_page_cache) {
@@ -124,7 +124,11 @@ try {
             }
         }
 
-        $page = load_match_context($config, $match_id_for_cache);
+        $refresh_teamfights = $current_tab === 'teamfights' && ($_GET['refresh_teamfights'] ?? '') === '1';
+        if ($refresh_teamfights) {
+            @unlink(app_cache_file('match_pages', $page_cache_key));
+        }
+        $page = load_match_context($config, $match_id_for_cache, $refresh_teamfights);
         extract($page, EXTR_SKIP);
 
         if ($can_use_page_cache) {

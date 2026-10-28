@@ -35,3 +35,26 @@ check_insight(damage_reduction_metrics(array_merge($native,['damage_received_pre
 ob_start(); render_damage_tab([array_merge(['hero_id'=>1,'personaname'=>'Native Player','damage'=>['npc_dota_hero_two'=>15],'damage_taken'=>[]],$native)],[],$heroes);$native_html=ob_get_clean();
 check_insight(str_contains($native_html,'55,6 %') && str_contains($native_html,'131 612') && str_contains($native_html,'73 122'), 'Native before, prevented and percentage all reach HTML');
 echo "PASS: 21 match-insight checks\n";
+
+// Teamfight details: missing data, replay order, icons and safe legacy fallback.
+check_insight($b['participants'][0]['damage_taken'] === null, 'Missing fight incoming damage stays unavailable');
+$chronology = ['start'=>20,'end'=>35,'actions_version'=>1,'actions'=>[
+ ['time'=>21,'sequence'=>8,'slot'=>1,'kind'=>'ability','key'=>'dragon_knight_breathe_fire','target_slot'=>0],
+ ['time'=>21,'sequence'=>7,'slot'=>1,'kind'=>'item','key'=>'blink','target_slot'=>null],
+ ['time'=>40,'sequence'=>9,'slot'=>1,'kind'=>'item','key'=>'blink'],
+ ['time'=>21,'sequence'=>10,'slot'=>1,'kind'=>'item','key'=>'<script>'],
+]];
+$normalized = normalize_teamfight_actions($chronology,[0=>0,1=>128]);
+check_insight(count($normalized)===2 && $normalized[0]['key']==='blink', 'Chronology bounded by episode; equal-second source order retained');
+check_insight($normalized[1]['slot']===128 && $normalized[1]['target_slot']===0, 'Chronology maps positional slots to real players');
+check_insight(normalize_teamfight_actions([],[])===null, 'Aggregate-only legacy data is not an invented chronology');
+check_insight(str_contains($html,'Для времени и последовательности нужен повторный разбор'), 'Legacy chronology has a reprocessing explanation');
+$icon=teamfight_action_icon('blink','item',[],2);
+check_insight(str_contains($icon,'items/blink.png') && str_contains($icon,'×2'), 'Item icons retain use counts');
+$active = analyze_teamfight(array_merge($chronology,['players'=>[['participated'=>true,'damage_taken'=>0,'damage'=>80],['participated'=>true,'damage_taken'=>80,'damage'=>0]]]),0,$slots,$positions,$heroes);
+check_insight($active['participants'][0]['damage_taken']!==null, 'Explicit zero incoming damage is available');
+ob_start();render_teamfight_card($active,$heroes);$new_html=ob_get_clean();
+check_insight(str_contains($new_html,'data-sequence="7"') && str_contains($new_html,'data-sequence="8"'), 'Actual source sequence reaches HTML');
+check_insight(str_contains($new_html,'Получено') && str_contains($new_html,'100% команды'), 'Incoming damage and team share reach table');
+check_insight(!str_contains($new_html,'Частые действия'), 'Obsolete spacious action summaries removed');
+echo "PASS: 10 teamfight detail checks\n";
