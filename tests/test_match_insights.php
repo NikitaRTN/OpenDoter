@@ -24,4 +24,14 @@ check_insight(str_contains($html,'data-participated="true"'), 'Participation is 
 ob_start(); render_damage_tab([['hero_id'=>1,'personaname'=>'Missing metrics']], [], $heroes); $fallback = ob_get_clean();
 check_insight(substr_count($fallback, 'Нет данных') === 3, 'Missing fallback metrics stay unavailable, not zero');
 check_insight(!str_contains($fallback, 'insight-jump-links'), 'Missing-data state has no dead navigation anchors');
-echo "PASS: 14 match-insight checks\n";
+$native = ['damage_reduction_source'=>'replay_team_damage_counters','damage_received_pre_reduction'=>131612,'damage_received_post_reduction'=>58490];
+$m = damage_reduction_metrics($native);
+check_insight(damage_percent($m['pct']) === '55,6 %', 'Native counters render the reference percentage');
+check_insight($m['prevented'] === 73122, 'Prevented damage equals before minus after');
+check_insight(damage_reduction_metrics([]) === null, 'Old data is not fabricated');
+check_insight(damage_reduction_metrics(array_merge($native,['damage_received_pre_reduction'=>-1])) === null, 'Invalid native counters are unavailable');
+check_insight(damage_reduction_metrics(array_merge($native,['damage_received_pre_reduction'=>0,'damage_received_post_reduction'=>0]))['pct'] === null, 'Zero input has no defined percentage');
+check_insight(damage_reduction_metrics(array_merge($native,['damage_received_pre_reduction'=>100,'damage_received_post_reduction'=>120]))['pct'] < 0, 'Damage amplification is not clamped');
+ob_start(); render_damage_tab([array_merge(['hero_id'=>1,'personaname'=>'Native Player','damage'=>['npc_dota_hero_two'=>15],'damage_taken'=>[]],$native)],[],$heroes);$native_html=ob_get_clean();
+check_insight(str_contains($native_html,'55,6 %') && str_contains($native_html,'131 612') && str_contains($native_html,'73 122'), 'Native before, prevented and percentage all reach HTML');
+echo "PASS: 21 match-insight checks\n";

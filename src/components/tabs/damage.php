@@ -212,9 +212,25 @@ function damage_map_total(array $player, string $field, ?array $opponents = null
     return $total;
 }
 
-function damage_number(?int $value): string
+function damage_number(int|float|null $value): string
 {
     return $value === null ? 'Нет данных' : number_format($value, 0, '.', ' ');
+}
+
+/** Native received hero damage, not the all-source combat-log sum. */
+function damage_reduction_metrics(array $player): ?array
+{
+    if (($player['damage_reduction_source'] ?? null) !== 'replay_team_damage_counters') return null;
+    $pre = $player['damage_received_pre_reduction'] ?? null;
+    $post = $player['damage_received_post_reduction'] ?? null;
+    if (!is_numeric($pre) || !is_numeric($post) || !is_finite((float) $pre) || !is_finite((float) $post) || $pre < 0 || $post < 0) return null;
+    return ['pre' => (float) $pre, 'post' => (float) $post, 'prevented' => $pre - $post,
+        'pct' => $pre > 0 ? 100 * (1 - $post / $pre) : null];
+}
+
+function damage_percent(?float $value): string
+{
+    return $value === null ? 'Нет данных' : number_format($value, 1, ',', ' ') . ' %';
 }
 
 function render_damage_summary_team(string $team, array $players, array $enemies, array $heroes): void
@@ -228,10 +244,11 @@ function render_damage_summary_team(string $team, array $players, array $enemies
     <section class="insight-team-panel">
         <div class="insight-section-heading"><h3 class="<?php echo $team === 'Свет' ? 'insight-radiant' : 'insight-dire'; ?>"><?php echo e($team); ?></h3><span class="insight-muted">По нанесённому урону героям</span></div>
         <table class="damage-overview-table">
-            <thead><tr><th rowspan="2" scope="col">Игрок</th><th colspan="2" scope="colgroup">Нанесённый урон</th><th colspan="2" scope="colgroup">Полученный урон</th><th rowspan="2" scope="col">Лечение</th></tr><tr><th scope="col">Герои</th><th scope="col">Строения</th><th scope="col">Всего по реплею</th><th scope="col">Уменьшено, %</th></tr></thead>
+            <thead><tr><th rowspan="2" scope="col">Игрок</th><th colspan="2" scope="colgroup">Нанесённый урон</th><th colspan="2" scope="colgroup">Полученный урон</th><th rowspan="2" scope="col">Лечение</th></tr><tr><th scope="col">Герои</th><th scope="col">Строения</th><th scope="col">До уменьшения</th><th scope="col">Уменьшено, %</th></tr></thead>
             <tbody>
             <?php foreach ($rows as $row): $player = $row['player'];
-                $taken = damage_map_total($player, 'damage_taken');
+                $native = damage_reduction_metrics($player);
+                $taken = $native['pre'] ?? null;
                 $taken_heroes = damage_map_total($player, 'damage_taken', $enemies, $heroes);
                 $buildings = isset($player['tower_damage']) ? (int) $player['tower_damage'] : null;
                 $healing = isset($player['hero_healing']) ? (int) $player['hero_healing'] : null;
@@ -240,8 +257,8 @@ function render_damage_summary_team(string $team, array $players, array $enemies
                     <?php render_player_match_cells($player, $heroes); ?>
                     <td data-label="Нанесено героям" class="insight-number damage-dealt"><strong><?php echo e(damage_number($row['dealt'])); ?></strong></td>
                     <td data-label="Нанесено строениям" class="insight-number"><?php echo e(damage_number($buildings)); ?></td>
-                    <td data-label="Получено по реплею" class="insight-number damage-taken"><strong><?php echo e(damage_number($taken)); ?></strong><small>От героев: <?php echo e(damage_number($taken_heroes)); ?></small></td>
-                    <td data-label="Уменьшено, %" class="damage-unavailable"><span aria-label="Нет данных об уменьшении урона">—</span><small>Нет данных</small></td>
+                    <td data-label="До уменьшения" class="insight-number damage-taken"><strong><?php echo e(damage_number($taken)); ?></strong><small><?php echo $native !== null ? 'После: ' . e(damage_number($native['post'])) : 'По событиям от героев: ' . e(damage_number($taken_heroes)); ?></small></td>
+                    <td data-label="Уменьшено, %" class="insight-number"><strong><?php echo e(damage_percent($native['pct'] ?? null)); ?></strong><small><?php echo $native !== null ? 'Предотвращено: <span class="insight-number">' . e(damage_number($native['prevented'])) . '</span>' : 'Нужен повторный разбор'; ?></small></td>
                     <td data-label="Лечение" class="insight-number"><?php echo e(damage_number($healing)); ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -281,29 +298,38 @@ function render_damage_tab(array $radiant_players, array $dire_players, array $h
     $leaders = [];
     foreach ([['Свет', $radiant_players, $dire_players], ['Тьма', $dire_players, $radiant_players]] as [$team, $roster, $enemies]) {
         foreach ($roster as $player) {
-            $leaders[] = ['player' => $player, 'team' => $team, 'dealt' => damage_map_total($player, 'damage', $enemies, $heroes), 'taken' => damage_map_total($player, 'damage_taken')];
+            $leaders[] = ['player' => $player, 'team' => $team, 'dealt' => damage_map_total($player, 'damage', $enemies, $heroes), 'taken' => damage_reduction_metrics($player)['pre'] ?? null];
         }
     }
     ?>
         <div class="insight-kpis">
-        <?php foreach (['dealt' => ['Больше всего урона героям', 'Только вражеские герои, без иллюзий'], 'taken' => ['Получено по реплею: максимум', 'Все источники за матч']] as $key => [$label, $caption]):
+        <?php foreach (['dealt' => ['Больше всего урона героям', 'Только вражеские герои, без иллюзий'], 'taken' => ['Принято до уменьшения: максимум', 'Входящий урон по счётчикам Dota']] as $key => [$label, $caption]):
             $sorted = array_values(array_filter($leaders, static fn(array $row): bool => $row[$key] !== null));
             usort($sorted, static fn(array $a, array $b): int => $b[$key] <=> $a[$key]);
             $leader = $sorted[0] ?? null;
         ?>
             <div class="insight-kpi"><span class="insight-muted"><?php echo e($label); ?></span><strong><?php echo e(damage_number($leader[$key] ?? null)); ?></strong><span><?php echo $leader ? e(get_hero_name((int) ($leader['player']['hero_id'] ?? 0), $heroes) . ' · ' . $leader['team']) : 'Нет данных'; ?></span><small><?php echo e($caption); ?></small></div>
         <?php endforeach; ?>
-            <div class="insight-kpi insight-kpi-note"><span class="insight-muted">Снижение урона</span><strong>Нет данных</strong><span>Не подменяем оценкой брони</span><small>Для процента, как в Dota, нужны исходный и предотвращённый урон.</small></div>
+            <?php
+            $mitigation = [];
+            foreach ($leaders as $row) {
+                $metrics = damage_reduction_metrics($row['player']);
+                if (($metrics['pct'] ?? null) !== null) $mitigation[] = ['row' => $row, 'metrics' => $metrics];
+            }
+            usort($mitigation, static fn(array $a, array $b): int => $b['metrics']['pct'] <=> $a['metrics']['pct']);
+            $best = $mitigation[0] ?? null;
+            ?>
+            <div class="insight-kpi insight-kpi-note"><span class="insight-muted">Уменьшение урона: максимум</span><strong><?php echo e(damage_percent($best['metrics']['pct'] ?? null)); ?></strong><span><?php echo $best ? e(get_hero_name((int) ($best['row']['player']['hero_id'] ?? 0), $heroes) . ' · ' . $best['row']['team']) : 'Нужен повторный разбор'; ?></span><small>По урону до и после уменьшения, без оценки по броне.</small></div>
         </div>
         <div id="damage-summary" class="insight-section-heading"><div><h3>Все игроки — в одной сводке</h3><p>Точные значения, без округления до «k». Отдельно — нанесённый и полученный урон.</p></div></div>
         <?php render_damage_summary_team('Свет', $radiant_players, $dire_players, $heroes); render_damage_summary_team('Тьма', $dire_players, $radiant_players, $heroes); ?>
         <div id="damage-breakdowns" class="insight-section-heading"><div><h3>Подробная разбивка</h3><p>Открой нужный раздел, чтобы увидеть конкретные источники и цели.</p></div></div>
         <details class="insight-details"><summary><span><strong>Кому наносили урон</strong><small>Игрок → вражеские герои</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body"><p class="insight-scroll-hint">На узком экране таблицу можно прокручивать по горизонтали.</p><p class="insight-muted">Строка — атакующий игрок. Колонка — герой, которому он нанёс урон. «Всего» — сумма по этим пяти героям. Полосы сравнивают ячейки внутри одной команды.</p><?php render_hero_damage_matrix('Свет', $radiant_players, $dire_players, $heroes, 'damage', 'dealt'); render_hero_damage_matrix('Тьма', $dire_players, $radiant_players, $heroes, 'damage', 'dealt'); ?></div></details>
-        <details class="insight-details"><summary><span><strong>От кого получали урон</strong><small>Игрок ← вражеские герои</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body"><p class="insight-scroll-hint">На узком экране таблицу можно прокручивать по горизонтали.</p><p class="insight-muted">Строка — получатель урона. Колонка — атакующий герой. Здесь нет урона от крипов, строений и других источников: поэтому сумма может быть меньше «Всего по реплею».</p><?php render_hero_damage_matrix('Свет', $radiant_players, $dire_players, $heroes, 'damage_taken', 'received'); render_hero_damage_matrix('Тьма', $dire_players, $radiant_players, $heroes, 'damage_taken', 'received'); ?></div></details>
+        <details class="insight-details"><summary><span><strong>От кого получали урон</strong><small>Игрок ← вражеские герои</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body"><p class="insight-scroll-hint">На узком экране таблицу можно прокручивать по горизонтали.</p><p class="insight-muted">Строка — получатель урона. Колонка — атакующий герой. Здесь показан прошедший урон от пяти вражеских героев. В сводке «До уменьшения» — другой показатель: входящий урон до защиты.</p><?php render_hero_damage_matrix('Свет', $radiant_players, $dire_players, $heroes, 'damage_taken', 'received'); render_hero_damage_matrix('Тьма', $dire_players, $radiant_players, $heroes, 'damage_taken', 'received'); ?></div></details>
         <details class="insight-details"><summary><span><strong>Урон по строениям и Рошану</strong><small>Башни по уровням, казармы, крепость и Рошан</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body"><p class="insight-scroll-hint">На узком экране таблицу можно прокручивать по горизонтали.</p><p class="insight-muted">Рошан показан отдельно и входит в итог этой разбивки. Это не тот же показатель, что «Строения» в сводке матча.</p><?php render_building_damage_matrix('Свет', $radiant_players, $heroes); render_building_damage_matrix('Тьма', $dire_players, $heroes); ?></div></details>
-        <details id="damage-explained" class="insight-details"><summary><span><strong>Как читать показатели</strong><small>Что считается, а чего в текущих данных нет</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body insight-glossary">
-            <div><h4>Всего по реплею</h4><p>Сумма событий полученного урона в реплее — от героев, крипов, строений и других источников. Это не объём предотвращённого урона. Сумма событий реплея может отличаться от колонки «Всего» в клиенте Dota: мы не выдаём её за точную копию клиентской метрики.</p></div>
-            <div><h4>Уменьшено, %</h4><p>Референс — послематчевая таблица Dota. Текущий парсер не сохраняет достаточных данных для этого процента. Броня и сопротивление в конце матча не позволяют восстановить его достоверно: показатель не рассчитывается.</p></div>
+        <details id="damage-explained" class="insight-details"><summary><span><strong>Как читать показатели</strong><small>Источники данных и формула уменьшения</small></span><span class="insight-expand" aria-hidden="true">+</span></summary><div class="insight-details-body insight-glossary">
+            <div><h4>До уменьшения и после</h4><p>Нативные накопительные счётчики Dota из реплея: входящий урон по физическому, магическому и чистому типам до и после уменьшения. Это не сумма всего урона от крипов и строений. Берём последний полный снимок, а не складываем накопительные значения. Целые числа могут немного отличаться от клиента из-за точности и округления.</p></div>
+            <div><h4>Уменьшено, %</h4><p>100 × (1 − урон после уменьшения / урон до уменьшения). «Предотвращено» — разница этих счётчиков. Расчёт использует данные реплея, а не броню в конце матча. При нулевом входящем уроне процент не определён. Для старых разборов без счётчиков нужен повторный разбор; значение не подставляется по образцу.</p></div>
             <div><h4>Нанесено героям</h4><p>Сумма урона по конкретным вражеским героям из карты damage. Иллюзии и призванные существа не включены в эти пять целей; значение может отличаться от общей метрики Dota.</p></div>
             <div><h4>Лечение и строения</h4><p>Показатели hero_healing и tower_damage из метаданных матча. Нулевое значение — 0; если поля нет, показываем «Нет данных».</p></div>
         </div></details>

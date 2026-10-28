@@ -8,7 +8,7 @@ function load_match_context(array $config, ?string $requested_match_id = null): 
     $match_id = $requested_match_id ?: (string) $config['match_id'];
     $timeout = (float) $config['request_timeout'];
     $cache_ttl = (int) ($config['match_context_cache_ttl'] ?? 0);
-    $cache_key = 'match_' . $match_id . '_v3';
+    $cache_key = 'match_' . $match_id . '_v4';
 
     $cached = app_cache_get('match_context', $cache_key, $cache_ttl);
     if ($cached !== null) {

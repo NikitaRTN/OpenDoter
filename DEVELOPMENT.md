@@ -81,7 +81,7 @@ python -m pip install -r parser-master/requirements.txt
 
 ## Вкладки «Урон» и «Командные бои»
 
-- «Урон»: сводка разделяет нанесённый урон, полученный урон по событиям реплея и недоступный процент уменьшения. Сумма `damage_taken` не объявляется точной копией колонки клиента Dota. Значения отсутствующих полей не подменяются нулями.
+- «Урон»: сводка разделяет нанесённый урон и нативные счётчики полученного урона до/после уменьшения. Процент рассчитывается из этих счётчиков; подробные матрицы используют отдельные события `damage_taken`. Значения отсутствующих полей не подменяются нулями.
 - Подробные матрицы раскрываются отдельно; на мобильном экране широкие таблицы прокручиваются внутри своего блока.
 - Новые parsed blobs содержат явное `participated`, входящий урон и лечение участвующих союзников. Самолечение, пассивный доход, выкуп или использование предмета не подтверждают участие сами по себе.
 - Для старых blobs действует консервативный fallback: убийства, смерти, нанесённый или полученный урон. Для полного учёта поддержки нужно пересобрать blob из `parsed.jsonl`; повторное скачивание демки и Java-парсинг не требуются.
@@ -95,3 +95,9 @@ node --test parser-master/tests/teamfightParticipation.test.mjs
 ```
 
 Визуальная проверка: ширины 1440 и 390 px, сводка, раскрытые матрицы, составы и действия игроков. Обновлены версии кэша двух вкладок и контекста матча, чтобы старый HTML не скрывал изменения.
+
+## Native damage reduction
+
+The damage summary reads replay team counters for physical, magical and pure incoming hero damage before/after reduction, rather than estimating from final armor. The parser exports the latest complete cumulative snapshot. Per-type counters are converted to integers before summing, matching the client scoreboard; reduction is `100 * (1 - post / pre)`, and prevented damage is `pre - post`. Missing counters remain unavailable; zero incoming damage has no defined percentage. Older cached matches need replay reprocessing. The detailed combat-log matrices remain a different measure.
+
+The supplied match `9064491290` was reprocessed and checked against all five Dire players in the reference screenshot; Dragon Knight displays 131612 before reduction and 55.6%. These values are regression fixtures, not constants in the calculation.
