@@ -167,8 +167,12 @@ try {
 
     if ($route['type'] === 'player') {
         $page_title = 'Профиль игрока';
+        if (($_GET['data'] ?? '') === 'insights') {
+            proxy_json_request(rtrim((string) $config['api_base'], '/') . '/api/players/' . rawurlencode((string) $route['account_id']) . '/insights?' . http_build_query($_GET), 'GET', null, (float) $config['request_timeout']);
+            return;
+        }
         $matches_page = max(1, (int) ($_GET['page'] ?? 1));
-        $include_turbo = in_array(strtolower((string) ($_GET['turbo'] ?? '')), ['1', 'true', 'yes', 'on'], true);
+        $include_turbo = in_array(strtolower((string) ($_GET['turbo'] ?? '1')), ['1', 'true', 'yes', 'on'], true);
         $page = load_player_context($config, (string) $route['account_id'], $matches_page, $include_turbo);
         extract($page, EXTR_SKIP);
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-function load_player_context(array $config, string $account_id, int $page = 1, bool $include_turbo = false): array
+function load_player_context(array $config, string $account_id, int $page = 1, bool $include_turbo = true): array
 {
     $api_base = rtrim((string) $config['api_base'], '/');
     $timeout = (float) $config['request_timeout'];
@@ -11,7 +11,7 @@ function load_player_context(array $config, string $account_id, int $page = 1, b
     $offset = ($page - 1) * $per_page;
     $turbo_param = $include_turbo ? '&turbo=1' : '';
     $cache_ttl = (int) ($config['player_context_cache_ttl'] ?? 0);
-    $cache_key = 'player_' . preg_replace('/\D+/', '', $account_id) . '_p' . $page . '_' . ($include_turbo ? 'turbo' : 'regular') . '_v1';
+    $cache_key = 'player_' . preg_replace('/\D+/', '', $account_id) . '_p' . $page . '_' . ($include_turbo ? 'turbo' : 'regular') . '_v2';
 
     $cached = app_cache_get('player_context', $cache_key, $cache_ttl);
     if ($cached !== null) {
@@ -134,7 +134,7 @@ function compute_player_stats(array $matches, array $heroes, array $wl_raw, arra
     $top_heroes = [];
     if ($heroes_raw !== []) {
         usort($heroes_raw, static fn($x, $y) => ((int) ($y['games'] ?? 0)) <=> ((int) ($x['games'] ?? 0)));
-        foreach (array_slice($heroes_raw, 0, 8) as $row) {
+        foreach ($heroes_raw as $row) {
             $games = (int) ($row['games'] ?? 0);
             if ($games <= 0) { continue; }
             $top_heroes[] = [
@@ -146,7 +146,7 @@ function compute_player_stats(array $matches, array $heroes, array $wl_raw, arra
         }
     } else {
         usort($hero_agg, static fn($x, $y) => $y['games'] <=> $x['games']);
-        foreach (array_slice(array_values($hero_agg), 0, 8) as $row) {
+        foreach (array_values($hero_agg) as $row) {
             $top_heroes[] = [
                 'hero_id' => $row['hero_id'],
                 'games' => $row['games'],
