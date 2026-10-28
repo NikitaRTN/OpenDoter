@@ -13,6 +13,7 @@ if (PHP_SAPI === 'cli-server') {
     if ($requestPath !== '/' && is_file(__DIR__ . $requestPath)) {
         return false;
     }
+    header('X-OpenDoter-Service: site');
 }
 
 // Ultra-fast anonymous HTML cache for immutable match tabs.

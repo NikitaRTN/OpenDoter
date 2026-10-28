@@ -2,3 +2,7 @@
 cache/
 
 # API server is tracked as a Git submodule.
+
+# Python launcher/test bytecode
+__pycache__/
+*.py[cod]
